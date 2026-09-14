@@ -1,0 +1,52 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Import every module
+        run: |
+          python -c "
+          import importlib
+          for name in ('db', 'github', 'charts', 'i18n', 'auth',
+                       'ha_analytics', 'collector', 'main'):
+              importlib.import_module(f'app.{name}')
+          print('all modules import')
+          "
+        env:
+          DB_PATH: ./check.db
+
+      - name: The two languages must have the same keys
+        run: |
+          python -c "
+          from app.i18n import TEXTS
+          de, en = set(TEXTS['de']), set(TEXTS['en'])
+          missing = de ^ en
+          assert not missing, f'not translated in both: {sorted(missing)}'
+          print(f'{len(de)} keys, both languages complete')
+          "
+
+      - name: Every template renders
+        run: |
+          python -c "
+          from jinja2 import Environment, FileSystemLoader
+          env = Environment(loader=FileSystemLoader('app/templates'))
+          for name in ('base.html', 'index.html', 'repo.html', 'settings.html',
+                       'issues.html', 'top.html', 'login.html', 'kpi.html'):
+              env.get_template(name)
+          print('templates parse')
+          "
