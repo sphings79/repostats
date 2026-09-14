@@ -46,6 +46,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=Repo Stats
             org.opencontainers.image.description=Self-hosted dashboard for GitHub repository statistics, with the history GitHub deletes after 14 days
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
 
       - name: Build and push
         uses: docker/build-push-action@v6

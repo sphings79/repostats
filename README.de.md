@@ -11,7 +11,7 @@
 [![Image](https://github.com/sphings79/repostats/actions/workflows/docker.yml/badge.svg)](https://github.com/sphings79/repostats/actions/workflows/docker.yml)
 [![Check](https://github.com/sphings79/repostats/actions/workflows/check.yml/badge.svg)](https://github.com/sphings79/repostats/actions/workflows/check.yml)
 [![Container](https://img.shields.io/badge/ghcr.io-repostats-41BDF5?logo=docker&logoColor=white)](https://github.com/sphings79/repostats/pkgs/container/repostats)
-[![Lizenz](https://img.shields.io/github/license/sphings79/repostats?color=3DDC97)](LICENSE)
+[![Lizenz](https://img.shields.io/badge/Lizenz-AGPL--3.0-3DDC97)](LICENSE)
 [![Sterne](https://img.shields.io/github/stars/sphings79/repostats?color=FFC107)](https://github.com/sphings79/repostats/stargazers)
 
 </div>
@@ -187,7 +187,12 @@ finden.
 
 ## Lizenz
 
-MIT — siehe [LICENSE](LICENSE).
+**AGPL-3.0** — siehe [LICENSE](LICENSE).
+
+Nutzen, ändern, betreiben: alles erlaubt. Die eine Bedingung: Wer es anderen
+über ein Netzwerk anbietet, muss auch den Quellcode seiner Fassung
+herausgeben. Genau darin unterscheidet sich die AGPL von der GPL — und bei
+etwas, das als Dienst läuft, ist das der Fall, auf den es ankommt.
 
 ---
 

@@ -433,3 +433,7 @@ button.ghost.danger:hover { color: #ff8585; border-color: rgba(255, 107, 107, .5
 .versions li.other { opacity: .5; }
 .versions .n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .versions .tag { margin-left: 0; justify-self: start; }
+
+/* the licence wants the source reachable from the running service */
+footer .source { margin-left: auto; color: var(--dim); text-decoration: none; }
+footer .source:hover { color: var(--accent); }

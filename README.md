@@ -11,7 +11,7 @@
 [![Image](https://github.com/sphings79/repostats/actions/workflows/docker.yml/badge.svg)](https://github.com/sphings79/repostats/actions/workflows/docker.yml)
 [![Check](https://github.com/sphings79/repostats/actions/workflows/check.yml/badge.svg)](https://github.com/sphings79/repostats/actions/workflows/check.yml)
 [![Container](https://img.shields.io/badge/ghcr.io-repostats-41BDF5?logo=docker&logoColor=white)](https://github.com/sphings79/repostats/pkgs/container/repostats)
-[![Licence](https://img.shields.io/github/license/sphings79/repostats?color=3DDC97)](LICENSE)
+[![Licence](https://img.shields.io/badge/licence-AGPL--3.0-3DDC97)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/sphings79/repostats?color=FFC107)](https://github.com/sphings79/repostats/stargazers)
 
 </div>
@@ -180,7 +180,12 @@ If this saves you from opening fifty Insights pages, a ⭐ helps others find it.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+**AGPL-3.0** — see [LICENSE](LICENSE).
+
+Use it, change it, run it wherever you like. The one condition: if you offer
+it to others over a network, they get the source of your version too. That is
+what separates the AGPL from the GPL, and for something that runs as a service
+it is the case that matters.
 
 ---
 

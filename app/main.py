@@ -1,4 +1,15 @@
-"""The web application: one overview, one page per repository, one settings page."""
+"""The web application: one overview, one page per repository, one settings page.
+
+Repo Stats — a self-hosted dashboard for GitHub repository statistics.
+Copyright (C) 2026 sphings79
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. It is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; see the licence for details. You should have received a
+copy along with this program; if not, see <https://www.gnu.org/licenses/>.
+"""
 import asyncio
 import logging
 import os
@@ -37,6 +48,10 @@ def _asset_version() -> str:
 
 
 ASSETS = _asset_version()
+
+# The licence asks that people using this over a network can get at the
+# source, so the footer links to it.
+SOURCE_URL = os.getenv("SOURCE_URL", "https://github.com/sphings79/repostats")
 TOKEN = os.getenv("GITHUB_TOKEN", "")
 LOGIN = os.getenv("GITHUB_LOGIN", "")
 # Optional: a classic token without any scope. Fine-grained tokens are refused
@@ -125,6 +140,7 @@ def _render(request: Request, name: str, context: dict):
         "duration": lambda v: i18n.duration(v, lang),
         "auth_enabled": auth.enabled,
         "asset_version": ASSETS,
+        "source_url": SOURCE_URL,
     }
     return templates.TemplateResponse(request, name, context)
 

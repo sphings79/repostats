@@ -169,6 +169,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.failed": "mit Fehlern",
         "footer.interrupted": "abgebrochen",
         "footer.collecting": "Sammlung läuft …",
+        "footer.source": "Quelltext (AGPL-3.0)",
 
         "top.share": "Verteilung",
         "top.across": "über {n} Repositories",
@@ -357,6 +358,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.failed": "with errors",
         "footer.interrupted": "interrupted",
         "footer.collecting": "collecting …",
+        "footer.source": "Source (AGPL-3.0)",
 
         "top.share": "How it splits up",
         "top.across": "across {n} repositories",
