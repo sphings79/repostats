@@ -252,3 +252,19 @@ td.name label { cursor: pointer; font-weight: 600; }
 }
 .lang a:hover { color: var(--text); }
 .lang a.on { background: rgba(65, 189, 245, .14); color: var(--accent); }
+
+/* login */
+.login { display: flex; justify-content: center; padding: 6vh 0; }
+.login form { width: min(380px, 100%); display: flex; flex-direction: column; gap: 14px; }
+.login h1 { margin: 0; font-size: 22px; }
+.login .sub { margin: -6px 0 4px; color: var(--muted); font-size: 13.5px; }
+.login label { display: flex; flex-direction: column; gap: 6px; }
+.login label span { color: var(--muted); font-size: 12.5px; }
+.login input {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
+  padding: 10px 12px; color: var(--text); font: 14px var(--sans);
+}
+.login input:focus { outline: none; border-color: var(--accent); }
+.login .warning { margin: 0; padding: 9px 12px; font-size: 13px; }
+.lang .logout { color: var(--dim); margin-left: 8px; }
+.lang .logout:hover { color: var(--text); }

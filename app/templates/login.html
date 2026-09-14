@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ t('login.title') }} · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="login">
+  <form method="post" action="/login" class="panel">
+    <h1>{{ t('login.title') }}</h1>
+    <p class="sub">{{ t('login.sub') }}</p>
+
+    {% if failed %}<p class="warning">{{ t('login.failed') }}</p>{% endif %}
+
+    <label>
+      <span>{{ t('login.user') }}</span>
+      <input type="text" name="user" autocomplete="username" autofocus required>
+    </label>
+    <label>
+      <span>{{ t('login.password') }}</span>
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit">{{ t('login.submit') }}</button>
+  </form>
+</section>
+
+{% endblock %}

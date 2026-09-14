@@ -111,6 +111,14 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.failed": "mit Fehlern",
         "footer.collecting": "Sammlung läuft …",
 
+        "login.title": "Anmeldung",
+        "login.sub": "Dieses Dashboard ist geschützt.",
+        "login.user": "Benutzer",
+        "login.password": "Passwort",
+        "login.submit": "Anmelden",
+        "login.failed": "Benutzer oder Passwort stimmt nicht.",
+        "login.logout": "Abmelden",
+
         "ago.now": "gerade eben",
         "ago.minutes": "vor {n} min",
         "ago.hours": "vor {n} h",
@@ -218,6 +226,14 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.ok": "succeeded",
         "footer.failed": "with errors",
         "footer.collecting": "collecting …",
+
+        "login.title": "Sign in",
+        "login.sub": "This dashboard is protected.",
+        "login.user": "User",
+        "login.password": "Password",
+        "login.submit": "Sign in",
+        "login.failed": "That user or password is not right.",
+        "login.logout": "Sign out",
 
         "ago.now": "just now",
         "ago.minutes": "{n} min ago",

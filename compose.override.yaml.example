@@ -1,0 +1,15 @@
+# Host-specific additions: put the container on the proxy network so a
+# reverse proxy can reach it by name, and drop the published port so it is
+# not reachable around the proxy.
+#
+# Copy to compose.override.yaml — docker compose picks it up on its own.
+services:
+  repostats:
+    networks:
+      - default
+      - proxy
+    ports: !reset []
+
+networks:
+  proxy:
+    external: true

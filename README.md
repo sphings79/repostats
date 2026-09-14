@@ -16,8 +16,8 @@ views and clones across every repository you follow, where visitors come
 from, and how it all moves over time.
 
 **Per repository:** the same figures in detail, plus contributors, commits,
-open and merged pull requests, the most visited pages, downloads per release
-asset, and a star curve that reaches back to the first star — reconstructed
+open and merged pull requests, the success rate and duration of the CI runs,
+the most visited pages, downloads per release asset, and a star curve that reaches back to the first star — reconstructed
 from the dates GitHub keeps per stargazer, so the history is there from the
 first run instead of starting flat.
 
@@ -44,14 +44,20 @@ docker compose up -d
 Then open `http://<host>:8377`, pick the repositories to follow under
 *Verwaltung*, and press *Jetzt alles sammeln*.
 
-The token needs the `repo` scope (classic), or read access to Administration,
-Contents, Issues, Metadata and Pull requests (fine-grained). Without it
-everything works except the traffic figures, which stay empty.
+The token needs the `repo` scope (classic), or read access to Actions,
+Administration, Contents, Issues, Metadata and Pull requests (fine-grained).
+Without it everything works except the traffic figures, which stay empty.
+
+Set `AUTH_PASSWORD` unless you are running this on a laptop for a minute. The
+dashboard lists your private repositories, and the container holds a token
+that can read every one of them.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `GITHUB_TOKEN` | — | personal access token, required |
 | `GITHUB_LOGIN` | — | the account to collect, required |
+| `AUTH_USER` | `admin` | user for the dashboard login |
+| `AUTH_PASSWORD` | — | password; empty turns the login off |
 | `PORT` | `8377` | port on the host |
 | `FULL_RUN_HOUR` | `4` | hour (UTC) of the daily full run |
 | `QUICK_RUN_MINUTES` | `60` | how often the cheap counters refresh |
@@ -65,8 +71,10 @@ is one file copy.
 - Code and comments are in English.
 - Nothing leaves your network. The only outbound calls go to the GitHub API
   and to the Home Assistant analytics endpoint.
-- There is no authentication. Keep it on your own network or behind a proxy
-  that handles it.
+- The dashboard has its own login. Behind a reverse proxy, restrict it to
+  your own network as well — `docs/traefik.yaml.example` shows both locks
+  together, and `compose.override.yaml.example` puts the container on the
+  proxy network without publishing a port.
 
 ## Licence
 

@@ -13,14 +13,19 @@
     <span class="dot"></span>
     <span>Repo&nbsp;Stats</span>
   </a>
+  {% if request.url.path != '/login' %}
   <nav>
     <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>{{ t('nav.overview') }}</a>
     <a href="/settings" {% if request.url.path == '/settings' %}class="active"{% endif %}>{{ t('nav.settings') }}</a>
   </nav>
+  {% endif %}
   <div class="lang">
     {% for code, label in languages.items() %}
       <a href="/lang/{{ code }}" {% if code == lang %}class="on"{% endif %} title="{{ label }}">{{ code | upper }}</a>
     {% endfor %}
+    {% if auth_enabled and request.url.path != '/login' %}
+      <a href="/logout" class="logout" title="{{ t('login.logout') }}">{{ t('login.logout') }}</a>
+    {% endif %}
   </div>
 </header>
 

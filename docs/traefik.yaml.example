@@ -1,0 +1,36 @@
+# Repo Stats behind Traefik, as a file provider route.
+#
+# Two locks, on purpose: the network restriction keeps it off the internet,
+# and the application's own login keeps it closed inside the network too. The
+# dashboard lists private repositories and the container holds a token that
+# can read all of them.
+#
+# Drop this into the dynamic configuration directory, adjust the host name,
+# and make sure the container shares a network with Traefik.
+http:
+  routers:
+    repostats:
+      entryPoints:
+        - websecure
+      rule: "Host(`repostats.example.com`)"
+      middlewares:
+        - lan-only@file
+        - security-headers@file
+      service: repostats
+      tls: {}
+
+  services:
+    repostats:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://repostats:8080"
+
+  # If there is no lan-only middleware yet, this is one:
+  #
+  # middlewares:
+  #   lan-only:
+  #     ipAllowList:
+  #       sourceRange:
+  #         - "192.168.0.0/16"
+  #         - "10.0.0.0/8"

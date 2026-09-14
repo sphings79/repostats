@@ -16,8 +16,8 @@ Aufrufe und Clones über alle verfolgten Repositories, woher die Besucher kommen
 und wie sich das über die Zeit bewegt.
 
 **Pro Repository:** dieselben Zahlen im Detail, dazu Mitwirkende, Commits,
-offene und gemergte Pull Requests, die meistbesuchten Seiten, Downloads je
-Release-Datei — und eine Sterne-Kurve, die bis zum ersten Stern zurückreicht.
+offene und gemergte Pull Requests, Erfolgsquote und Dauer der CI-Läufe, die
+meistbesuchten Seiten, Downloads je Release-Datei — und eine Sterne-Kurve, die bis zum ersten Stern zurückreicht.
 Die wird aus den Zeitstempeln der einzelnen Stargazer rekonstruiert, steht also
 schon nach dem ersten Lauf zur Verfügung, statt bei null anzufangen.
 
@@ -43,14 +43,20 @@ docker compose up -d
 Dann `http://<host>:8377` öffnen, unter *Verwaltung* die Repositories auswählen
 und *Jetzt alles sammeln* drücken.
 
-Das Token braucht den Scope `repo` (klassisch) oder Lesezugriff auf
+Das Token braucht den Scope `repo` (klassisch) oder Lesezugriff auf Actions,
 Administration, Contents, Issues, Metadata und Pull requests (fein granuliert).
 Ohne Token funktioniert alles außer den Verkehrszahlen — die bleiben leer.
+
+`AUTH_PASSWORD` sollte gesetzt sein, außer es läuft kurz auf dem eigenen
+Rechner: Hier stehen die privaten Repositories, und im Container liegt ein
+Token, das sie alle lesen kann.
 
 | Variable | Vorgabe | Bedeutung |
 |---|---|---|
 | `GITHUB_TOKEN` | — | Persönliches Zugriffstoken, erforderlich |
 | `GITHUB_LOGIN` | — | Das Konto, das gesammelt wird, erforderlich |
+| `AUTH_USER` | `admin` | Benutzer für die Anmeldung |
+| `AUTH_PASSWORD` | — | Passwort; leer schaltet die Anmeldung ab |
 | `PORT` | `8377` | Port auf dem Host |
 | `FULL_RUN_HOUR` | `4` | Stunde (UTC) des täglichen Komplettlaufs |
 | `QUICK_RUN_MINUTES` | `60` | Wie oft die günstigen Zähler aktualisiert werden |
@@ -64,8 +70,10 @@ ist also eine Dateikopie.
 - Code und Kommentare sind auf Englisch.
 - Nichts verlässt das eigene Netz. Nach außen gehen nur Anfragen an die
   GitHub-API und an die Home-Assistant-Statistik.
-- Es gibt keine Anmeldung. Im eigenen Netz betreiben oder hinter einen Proxy
-  setzen, der das übernimmt.
+- Das Dashboard hat eine eigene Anmeldung. Hinter einem Reverse Proxy
+  zusätzlich aufs eigene Netz beschränken — `docs/traefik.yaml.example` zeigt
+  beide Schlösser zusammen, und `compose.override.yaml.example` hängt den
+  Container ins Proxy-Netz, ohne einen Port zu veröffentlichen.
 
 ## Lizenz
 

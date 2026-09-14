@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import charts, i18n
+from . import auth as auth_module, charts, i18n
 from .collector import Collector
 from .db import Database
 
@@ -30,6 +30,7 @@ QUICK_MINUTES = int(os.getenv("QUICK_RUN_MINUTES", "60"))
 
 db = Database(DB_PATH)
 collector = Collector(db, TOKEN, LOGIN)
+auth = auth_module.from_env(db)
 
 
 async def _scheduler() -> None:
@@ -71,6 +72,21 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Repo Stats", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
+
+OPEN_PATHS = ("/login", "/health", "/static", "/lang")
+
+
+@app.middleware("http")
+async def require_login(request: Request, call_next):
+    """Everything but the login page needs a valid session."""
+    path = request.url.path
+    if auth.enabled and not path.startswith(OPEN_PATHS):
+        if not auth.valid(request.cookies.get(auth_module.COOKIE)):
+            target = "/login"
+            if path != "/":
+                target += f"?next={path}"
+            return RedirectResponse(target, status_code=303)
+    return await call_next(request)
 templates = Jinja2Templates(directory=BASE / "templates")
 
 
@@ -86,6 +102,7 @@ def _render(request: Request, name: str, context: dict):
         "num": lambda v: i18n.number(v, lang),
         "ago": lambda v: i18n.ago(v, lang),
         "duration": lambda v: i18n.duration(v, lang),
+        "auth_enabled": auth.enabled,
     }
     return templates.TemplateResponse(request, name, context)
 
@@ -226,6 +243,35 @@ async def discover():
 async def collect(kind: str = Form("full")):
     asyncio.create_task(collector.run("quick" if kind == "quick" else "full"))
     return RedirectResponse("/settings", status_code=303)
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_form(request: Request, next: str = "/"):
+    if not auth.enabled or auth.valid(request.cookies.get(auth_module.COOKIE)):
+        return RedirectResponse("/", status_code=303)
+    return _render(request, "login.html", {"next": next, "failed": False})
+
+
+@app.post("/login")
+async def login(request: Request, user: str = Form(""), password: str = Form(""),
+                next: str = Form("/")):
+    client = request.client.host if request.client else "?"
+    if not auth.check(user, password, client):
+        _LOGGER.warning("Failed login from %s", client)
+        return _render(request, "login.html", {"next": next, "failed": True})
+
+    target = next if next.startswith("/") and not next.startswith("//") else "/"
+    response = RedirectResponse(target, status_code=303)
+    response.set_cookie(auth_module.COOKIE, auth.issue(), max_age=auth_module.MAX_AGE,
+                        httponly=True, samesite="lax")
+    return response
+
+
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(auth_module.COOKIE)
+    return response
 
 
 @app.get("/lang/{code}")
