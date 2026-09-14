@@ -50,10 +50,11 @@ Administration, Contents, Issues, Metadata and Pull requests (fine-grained).
 Without it everything works except the traffic figures, which stay empty.
 
 GitHub refuses fine-grained tokens on the stargazers endpoint, over REST and
-GraphQL alike, so the reconstructed star history needs `GITHUB_TOKEN_STARS` —
-a classic token with **no scopes ticked at all**, which can read public
-information and nothing else. Without it the star curve simply starts at your
-first collection run.
+GraphQL alike, and does not serve it to anonymous callers either. The
+reconstructed star history therefore needs `GITHUB_TOKEN_STARS`: a classic
+token with the `public_repo` scope. Keeping it separate means the main token
+never needs write access to anything. Without it the star curve simply starts
+at your first collection run.
 
 Set `AUTH_PASSWORD` unless you are running this on a laptop for a minute. The
 dashboard lists your private repositories, and the container holds a token
@@ -63,7 +64,7 @@ that can read every one of them.
 |---|---|---|
 | `GITHUB_TOKEN` | — | personal access token, required |
 | `GITHUB_LOGIN` | — | the account to collect, required |
-| `GITHUB_TOKEN_STARS` | — | classic token, no scopes, for the star history |
+| `GITHUB_TOKEN_STARS` | — | classic token with `public_repo`, for the star history |
 | `AUTH_USER` | `admin` | user for the dashboard login |
 | `AUTH_PASSWORD` | — | password; empty turns the login off |
 | `PORT` | `8377` | port on the host |

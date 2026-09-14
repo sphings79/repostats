@@ -11,8 +11,8 @@ services:
       GITHUB_TOKEN: ${GITHUB_TOKEN:?set GITHUB_TOKEN in .env}
       GITHUB_LOGIN: ${GITHUB_LOGIN:?set GITHUB_LOGIN in .env}
       # Optional. Fine-grained tokens are refused on the stargazers endpoint,
-      # so the star history needs a classic token — one with no scopes ticked
-      # is enough, it can read public information and nothing else.
+      # so the star history needs a classic token with the public_repo scope.
+      # Without it the curve simply starts at the first collection run.
       GITHUB_TOKEN_STARS: ${GITHUB_TOKEN_STARS:-}
       # Leave AUTH_PASSWORD empty to turn the login off. On anything but a
       # laptop, do not: the dashboard lists private repositories.

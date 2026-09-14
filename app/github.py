@@ -47,9 +47,10 @@ class GitHub:
         """A client for the stargazers endpoint, if a token for it exists.
 
         GitHub refuses fine-grained tokens there, over REST and GraphQL alike,
-        and the endpoint is not public either. A classic token with no scopes
-        at all is enough — it can read public information and nothing else —
-        so that one is kept separately rather than widening the main token.
+        and the endpoint is not open to anonymous callers either. A classic
+        token with the public_repo scope is what it accepts; it is kept apart
+        from the main token so the one that reads private repositories does
+        not have to grow write access to public ones.
         """
         if not self._star_token:
             return None
@@ -203,8 +204,11 @@ class GitHub:
             if response.status_code in (401, 403) and client is self._client:
                 fallback = self._star_client()
                 if fallback is None:
-                    _LOGGER.debug("No star history for %s: the token is not "
-                                  "allowed on this endpoint", full_name)
+                    _LOGGER.info(
+                        "No star history: this token may not read stargazers. "
+                        "Set GITHUB_TOKEN_STARS to a classic token with the "
+                        "public_repo scope to get the curve back to the first "
+                        "star.")
                     break
                 client = fallback
                 response = await client.get(
@@ -214,8 +218,11 @@ class GitHub:
                 )
             if response.status_code != 200:
                 if page == 1:
-                    _LOGGER.debug("No star history for %s (%s)", full_name,
-                                  response.status_code)
+                    _LOGGER.info(
+                        "No star history for %s: the stargazers endpoint "
+                        "answered %s. A classic token with the public_repo "
+                        "scope in GITHUB_TOKEN_STARS is what it accepts.",
+                        full_name, response.status_code)
                 break
             batch = response.json() or []
             out.extend(row["starred_at"][:10] for row in batch if "starred_at" in row)

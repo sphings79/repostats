@@ -49,10 +49,10 @@ Administration, Contents, Issues, Metadata und Pull requests (fein granuliert).
 Ohne Token funktioniert alles außer den Verkehrszahlen — die bleiben leer.
 
 Für die rückwirkende Sternhistorie braucht es `GITHUB_TOKEN_STARS`: GitHub weist
-fein granulierte Tokens am Stargazer-Endpunkt ab, über REST wie über GraphQL.
-Ein klassisches Token **ohne einen einzigen angehakten Scope** genügt — es kann
-nur öffentliche Informationen lesen. Ohne das Token beginnt die Sternkurve
-einfach beim ersten Sammellauf.
+fein granulierte Tokens am Stargazer-Endpunkt ab, über REST wie über GraphQL,
+und anonym gibt es dort auch nichts. Nötig ist ein klassisches Token mit dem
+Scope `public_repo`. Getrennt gehalten heißt: Das Haupttoken braucht nirgends
+Schreibrechte. Ohne das Token beginnt die Sternkurve beim ersten Sammellauf.
 
 `AUTH_PASSWORD` sollte gesetzt sein, außer es läuft kurz auf dem eigenen
 Rechner: Hier stehen die privaten Repositories, und im Container liegt ein
@@ -62,7 +62,7 @@ Token, das sie alle lesen kann.
 |---|---|---|
 | `GITHUB_TOKEN` | — | Persönliches Zugriffstoken, erforderlich |
 | `GITHUB_LOGIN` | — | Das Konto, das gesammelt wird, erforderlich |
-| `GITHUB_TOKEN_STARS` | — | Klassisches Token ohne Scopes, für die Sternhistorie |
+| `GITHUB_TOKEN_STARS` | — | Klassisches Token mit `public_repo`, für die Sternhistorie |
 | `AUTH_USER` | `admin` | Benutzer für die Anmeldung |
 | `AUTH_PASSWORD` | — | Passwort; leer schaltet die Anmeldung ab |
 | `PORT` | `8377` | Port auf dem Host |
