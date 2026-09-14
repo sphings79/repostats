@@ -320,6 +320,19 @@ class Database:
         with self.connect() as con:
             return con.execute(sql, params).fetchall()
 
+    def close_stale_runs(self) -> int:
+        """Mark runs that never finished as interrupted.
+
+        A container restart takes a running collection with it. Leaving the
+        row open makes it look like a failure afterwards, which it is not.
+        """
+        with self.connect() as con:
+            cursor = con.execute(
+                """UPDATE run SET finished_at = started_at, ok = 0,
+                                  note = 'interrupted'
+                   WHERE finished_at IS NULL""")
+            return cursor.rowcount
+
     def start_run(self, kind: str) -> str:
         started = _now()
         with self.connect() as con:

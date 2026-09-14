@@ -131,8 +131,13 @@
           <td class="ago">{{ ago(run['started_at']) }}</td>
           <td class="mono">{{ run['kind'] }}</td>
           <td class="n">{{ run['repos'] or 0 }}</td>
-          <td>{% if run['finished_at'] %}{% if run['ok'] %}<span class="ok">{{ t('run.ok') }}</span>{% else %}<span class="bad">{{ t('run.failed') }}</span>{% endif %}{% else %}<span class="pulse">{{ t('run.running') }}</span>{% endif %}</td>
-          <td class="note">{{ run['note'] or '' }}</td>
+          <td>
+            {%- if not run['finished_at'] %}<span class="pulse">{{ t('run.running') }}</span>
+            {%- elif run['ok'] %}<span class="ok">{{ t('run.ok') }}</span>
+            {%- elif run['note'] == 'interrupted' %}<span class="hint">{{ t('run.interrupted') }}</span>
+            {%- else %}<span class="bad">{{ t('run.failed') }}</span>{% endif %}
+          </td>
+          <td class="note">{{ '' if run['note'] == 'interrupted' else (run['note'] or '') }}</td>
         </tr>
       {% endfor %}
       </tbody>

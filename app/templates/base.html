@@ -35,7 +35,9 @@
 <footer>
   {% if last_run is defined and last_run %}
     {{ t('footer.last_run') }} {{ ago(last_run['started_at']) }}
-    {% if last_run['ok'] %}<span class="ok">{{ t('footer.ok') }}</span>{% else %}<span class="bad">{{ t('footer.failed') }}</span>{% endif %}
+    {% if last_run['ok'] %}<span class="ok">{{ t('footer.ok') }}</span>
+    {% elif last_run['note'] == 'interrupted' %}<span class="hint">{{ t('footer.interrupted') }}</span>
+    {% else %}<span class="bad">{{ t('footer.failed') }}</span>{% endif %}
     · {{ last_run['repos'] or 0 }} {{ t('col.repos') }}
   {% endif %}
   {% if running %}<span class="pulse">{{ t('footer.collecting') }}</span>{% endif %}

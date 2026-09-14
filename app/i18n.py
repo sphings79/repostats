@@ -162,10 +162,12 @@ TEXTS: dict[str, dict[str, str]] = {
 
         "run.ok": "ok",
         "run.failed": "Fehler",
+        "run.interrupted": "abgebrochen",
         "run.running": "läuft",
         "footer.last_run": "Letzter Lauf",
         "footer.ok": "erfolgreich",
         "footer.failed": "mit Fehlern",
+        "footer.interrupted": "abgebrochen",
         "footer.collecting": "Sammlung läuft …",
 
         "top.share": "Verteilung",
@@ -348,10 +350,12 @@ TEXTS: dict[str, dict[str, str]] = {
 
         "run.ok": "ok",
         "run.failed": "failed",
+        "run.interrupted": "interrupted",
         "run.running": "running",
         "footer.last_run": "Last run",
         "footer.ok": "succeeded",
         "footer.failed": "with errors",
+        "footer.interrupted": "interrupted",
         "footer.collecting": "collecting …",
 
         "top.share": "How it splits up",

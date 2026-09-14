@@ -53,6 +53,9 @@ auth = auth_module.from_env(db)
 
 async def _scheduler() -> None:
     """Hourly counters, one full run a day, and a full run on an empty database."""
+    stale = db.close_stale_runs()
+    if stale:
+        _LOGGER.info("%s collection(s) had been interrupted by a restart", stale)
     await asyncio.sleep(5)
     if not TOKEN or not LOGIN:
         _LOGGER.error("GITHUB_TOKEN and GITHUB_LOGIN have to be set")
@@ -426,7 +429,7 @@ async def health():
         "ok": True,
         "repos_tracked": len(db.repos()),
         "last_run": run["started_at"] if run else None,
-        "last_run_ok": bool(run["ok"]) if run else None,
+        "last_run_ok": bool(run["ok"]) if run and run["finished_at"] else None,
         "running": collector.running,
         "pending": collector.pending,
     })
