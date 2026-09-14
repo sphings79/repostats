@@ -1,8 +1,12 @@
-{% macro tile(label, value, tone, hint=None, sub=None) %}
-<article class="kpi {{ tone }}{% if hint %} has-hint{% endif %}">
-  <span class="kpi-label">{{ label }}{% if hint %}<i class="q" aria-hidden="true">?</i>{% endif %}</span>
+{% macro tile(label, value, tone, hint=None, sub=None, href=None) %}
+<article class="kpi {{ tone }}{% if hint %} has-hint{% endif %}{% if href %} linked{% endif %}">
+  {% if hint %}
+    <button type="button" class="info" aria-expanded="false" aria-label="{{ label }}">i</button>
+    <span class="hint-box" hidden>{{ hint | safe }}</span>
+  {% endif %}
+  {% if href %}<a class="kpi-link" href="{{ href }}"></a>{% endif %}
+  <span class="kpi-label">{{ label }}</span>
   <span class="kpi-value">{{ value }}</span>
   {% if sub %}<span class="kpi-sub">{{ sub }}</span>{% endif %}
-  {% if hint %}<span class="hint-box">{{ hint | safe }}</span>{% endif %}
 </article>
 {% endmacro %}

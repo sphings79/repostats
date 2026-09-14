@@ -24,7 +24,7 @@
           t('kpi.sub.clones', n=num(totals.clones))) }}
   {{ tile(t('kpi.downloads'), num(totals.downloads), 'violet', t('hint.downloads')) }}
   {{ tile(t('kpi.installs'), num(totals.installs), 'accent-2', t('hint.installs')) }}
-  {{ tile(t('kpi.issues'), num(totals.issues), 'gold', t('hint.issues')) }}
+  {{ tile(t('kpi.issues'), num(totals.issues), 'gold', t('hint.issues'), href='/issues') }}
 </section>
 
 <section class="panel">

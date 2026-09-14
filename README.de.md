@@ -17,7 +17,8 @@ und wie sich das über die Zeit bewegt.
 
 **Pro Repository:** dieselben Zahlen im Detail, dazu Mitwirkende, Commits,
 offene und gemergte Pull Requests, Erfolgsquote und Dauer der CI-Läufe, die
-meistbesuchten Seiten, Downloads je Release-Datei — und eine Sterne-Kurve, die bis zum ersten Stern zurückreicht.
+meistbesuchten Seiten, die offenen Issues samt Links, Downloads je
+Release-Datei — und eine Sterne-Kurve, die bis zum ersten Stern zurückreicht.
 Die wird aus den Zeitstempeln der einzelnen Stargazer rekonstruiert, steht also
 schon nach dem ersten Lauf zur Verfügung, statt bei null anzufangen.
 

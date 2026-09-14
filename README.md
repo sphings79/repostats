@@ -17,7 +17,8 @@ from, and how it all moves over time.
 
 **Per repository:** the same figures in detail, plus contributors, commits,
 open and merged pull requests, the success rate and duration of the CI runs,
-the most visited pages, downloads per release asset, and a star curve that reaches back to the first star — reconstructed
+the most visited pages, the open issues with links to them, downloads per
+release asset, and a star curve that reaches back to the first star — reconstructed
 from the dates GitHub keeps per stargazer, so the history is there from the
 first run instead of starting flat.
 

@@ -105,3 +105,39 @@ if (settings) {
   settings.addEventListener("change", update);
   update();
 }
+
+// The "i" on a KPI tile opens its note; a click elsewhere closes it again.
+document.querySelectorAll(".kpi .info").forEach((button) => {
+  const tile = button.closest(".kpi");
+  const box = tile.querySelector(".hint-box");
+
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const open = button.getAttribute("aria-expanded") === "true";
+
+    document.querySelectorAll(".kpi .info[aria-expanded='true']").forEach((other) => {
+      other.setAttribute("aria-expanded", "false");
+      other.closest(".kpi").classList.remove("open");
+      other.closest(".kpi").querySelector(".hint-box").hidden = true;
+    });
+
+    if (!open) {
+      button.setAttribute("aria-expanded", "true");
+      tile.classList.add("open");
+      box.hidden = false;
+    }
+  });
+});
+
+document.addEventListener("click", () => {
+  document.querySelectorAll(".kpi .info[aria-expanded='true']").forEach((button) => {
+    button.setAttribute("aria-expanded", "false");
+    button.closest(".kpi").classList.remove("open");
+    button.closest(".kpi").querySelector(".hint-box").hidden = true;
+  });
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") document.body.click();
+});

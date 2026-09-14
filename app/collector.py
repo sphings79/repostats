@@ -126,6 +126,12 @@ class Collector:
             await self._star_history(github, full_name, repo)
             values.update(await self._ci(github, full_name))
 
+            # Only ask when the count says there is something to list.
+            if values.get("open_issues"):
+                self.db.write_issues(full_name, await github.open_issues(full_name))
+            else:
+                self.db.write_issues(full_name, [])
+
             domain = row["ha_domain"]
             if domain is None:
                 domain = await ha_analytics.domain_for(github, full_name)

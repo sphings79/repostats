@@ -133,6 +133,14 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.failed": "mit Fehlern",
         "footer.collecting": "Sammlung läuft …",
 
+        "issues.title": "Offene Issues",
+        "issues.sub": "{n} offen über alle verfolgten Repositories",
+        "issues.none": "Nichts offen. Bemerkenswert.",
+        "issues.opened": "geöffnet",
+        "issues.updated": "zuletzt",
+        "issues.comments": "Kommentare",
+        "issues.stale": "seit über 90 Tagen unberührt",
+
         "login.title": "Anmeldung",
         "login.sub": "Dieses Dashboard ist geschützt.",
         "login.user": "Benutzer",
@@ -270,6 +278,14 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.ok": "succeeded",
         "footer.failed": "with errors",
         "footer.collecting": "collecting …",
+
+        "issues.title": "Open issues",
+        "issues.sub": "{n} open across the followed repositories",
+        "issues.none": "Nothing open. Remarkable.",
+        "issues.opened": "opened",
+        "issues.updated": "last touched",
+        "issues.comments": "comments",
+        "issues.stale": "untouched for over 90 days",
 
         "login.title": "Sign in",
         "login.sub": "This dashboard is protected.",

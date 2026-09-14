@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ t('issues.title') }} · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <a class="back" href="/">{{ t('repo.back') }}</a>
+    <h1>{{ t('issues.title') }}</h1>
+    <p class="sub">{{ t('issues.sub', n=total) }}</p>
+  </div>
+</section>
+
+{% if not groups %}
+  <section class="panel"><p class="empty">{{ t('issues.none') }}</p></section>
+{% endif %}
+
+{% for full_name, rows in groups %}
+<section class="panel">
+  <div class="panel-head">
+    <h2><a class="plain" href="/repo/{{ full_name }}">{{ full_name.split('/')[1] }}</a></h2>
+    <span class="hint">{{ rows | length }}</span>
+  </div>
+  <ul class="issues">
+    {% for issue in rows %}
+      <li>
+        <a class="issue-title" href="{{ issue['url'] }}" target="_blank" rel="noreferrer">
+          <span class="num">#{{ issue['number'] }}</span>{{ issue['title'] }}
+        </a>
+        <div class="issue-meta">
+          {% if issue['labels'] %}
+            {% for label in issue['labels'].split(',') %}<span class="tag">{{ label }}</span>{% endfor %}
+          {% endif %}
+          <span>{{ t('issues.opened') }} {{ ago(issue['created_at']) }}</span>
+          <span>{{ t('issues.updated') }} {{ ago(issue['updated_at']) }}</span>
+          {% if issue['comments'] %}<span>{{ issue['comments'] }} {{ t('issues.comments') }}</span>{% endif %}
+          {% if issue['author'] %}<span>@{{ issue['author'] }}</span>{% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+
+{% endblock %}

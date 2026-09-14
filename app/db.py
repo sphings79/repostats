@@ -90,6 +90,19 @@ CREATE TABLE IF NOT EXISTS release_asset (
     PRIMARY KEY (full_name, tag, asset)
 );
 
+CREATE TABLE IF NOT EXISTS issue (
+    full_name  TEXT NOT NULL,
+    number     INTEGER NOT NULL,
+    title      TEXT NOT NULL,
+    url        TEXT NOT NULL,
+    author     TEXT,
+    labels     TEXT,
+    comments   INTEGER,
+    created_at TEXT,
+    updated_at TEXT,
+    PRIMARY KEY (full_name, number)
+);
+
 CREATE TABLE IF NOT EXISTS run (
     started_at  TEXT PRIMARY KEY,
     finished_at TEXT,
@@ -248,6 +261,33 @@ class Database:
                    VALUES (?, ?, ?, ?, ?)""",
                 [(full_name, *r) for r in rows],
             )
+
+    def write_issues(self, full_name: str, rows: list[dict]) -> None:
+        """Replace what is stored for a repository; closed ones simply vanish."""
+        with self.connect() as con:
+            con.execute("DELETE FROM issue WHERE full_name = ?", (full_name,))
+            con.executemany(
+                """INSERT OR REPLACE INTO issue
+                   (full_name, number, title, url, author, labels, comments,
+                    created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [(full_name, r["number"], r["title"], r["html_url"],
+                  (r.get("user") or {}).get("login"),
+                  ",".join(l["name"] for l in r.get("labels", [])),
+                  r.get("comments", 0), r.get("created_at"), r.get("updated_at"))
+                 for r in rows],
+            )
+
+    def issues(self, full_name: str | None = None) -> list[sqlite3.Row]:
+        sql = """SELECT i.* FROM issue i
+                 JOIN repo r ON r.full_name = i.full_name AND r.tracked = 1"""
+        params: tuple = ()
+        if full_name:
+            sql += " WHERE i.full_name = ?"
+            params = (full_name,)
+        sql += " ORDER BY i.updated_at DESC"
+        with self.connect() as con:
+            return con.execute(sql, params).fetchall()
 
     def start_run(self, kind: str) -> str:
         started = _now()

@@ -219,6 +219,22 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
     })
 
 
+@app.get("/issues", response_class=HTMLResponse)
+async def issues(request: Request, repo: str | None = None):
+    """Every open issue across the followed repositories, with links."""
+    rows = db.issues(repo)
+    per_repo: dict[str, list] = {}
+    for row in rows:
+        per_repo.setdefault(row["full_name"], []).append(row)
+
+    return _render(request, "issues.html", {
+        "groups": sorted(per_repo.items(), key=lambda kv: (-len(kv[1]), kv[0])),
+        "total": len(rows),
+        "single": repo,
+        "last_run": db.last_run(),
+    })
+
+
 @app.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request):
     return _render(request, "settings.html", {
