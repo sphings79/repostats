@@ -43,6 +43,12 @@ class GitHub:
         for attempt in range(3):
             response = await self._client.get(path, params=params or None)
 
+            if response.status_code == 403 and "rate limit" not in response.text.lower():
+                # A token without this particular permission — the rest of the
+                # run is still worth finishing.
+                _LOGGER.debug("No access to %s", path)
+                return None
+
             if response.status_code == 403 and "rate limit" in response.text.lower():
                 reset = int(response.headers.get("x-ratelimit-reset", "0"))
                 wait = max(reset - int(datetime.now(timezone.utc).timestamp()), 1)
