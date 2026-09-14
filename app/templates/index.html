@@ -61,6 +61,7 @@
           <th data-sort="num">{{ t('col.views') }}</th>
           <th data-sort="num">{{ t('col.clones') }}</th>
           <th data-sort="num">{{ t('col.downloads') }}</th>
+          <th data-sort="num">{{ t('col.ci') }}</th>
           <th data-sort="num">HA</th>
           <th>{{ t('col.30days') }}</th>
           <th data-sort="text">{{ t('col.active') }}</th>
@@ -82,6 +83,7 @@
           <td class="n">{{ num(row.views) }}</td>
           <td class="n">{{ num(row.clones) }}</td>
           <td class="n">{{ num(row.snap['downloads'] if row.snap else 0) }}</td>
+          <td class="n">{% if row.snap and row.snap['ci_runs'] %}<span class="{{ 'ok' if row.snap['ci_rate'] >= 90 else ('bad' if row.snap['ci_rate'] < 60 else '') }}">{{ row.snap['ci_rate'] }} %</span>{% else %}<span class="dash">—</span>{% endif %}</td>
           <td class="n">{% if row.snap and row.snap['ha_installs'] %}{{ num(row.snap['ha_installs']) }}{% else %}<span class="dash">—</span>{% endif %}</td>
           <td class="spark-cell">{{ row.spark | safe }}</td>
           <td class="ago">{{ ago(row.repo['pushed_at']) }}</td>

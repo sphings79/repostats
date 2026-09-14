@@ -124,6 +124,7 @@ class Collector:
                 self.db.write_paths(full_name, paths)
 
             await self._star_history(github, full_name, repo)
+            values.update(await self._ci(github, full_name))
 
             domain = row["ha_domain"]
             if domain is None:
@@ -137,10 +138,51 @@ class Collector:
             previous = self.db.latest_snapshot(full_name)
             if previous:
                 for key in ("open_issues", "open_prs", "closed_issues", "merged_prs",
-                            "contributors", "commits", "ha_installs"):
+                            "contributors", "commits", "ha_installs",
+                            "ci_runs", "ci_success", "ci_rate", "ci_seconds", "ci_last"):
                     values[key] = previous[key]
 
         self.db.write_snapshot(full_name, values)
+
+    async def _ci(self, github: GitHub, full_name: str) -> dict:
+        """Success rate and duration of the workflow runs.
+
+        Only finished runs count: a run still in progress has no conclusion
+        and would otherwise drag the rate down for no reason.
+        """
+        runs = await github.workflow_runs(full_name)
+        finished = [r for r in runs if r.get("conclusion")]
+        if not finished:
+            return {}
+
+        good = [r for r in finished if r["conclusion"] == "success"]
+        seconds = []
+        for run in finished:
+            started, ended = run.get("run_started_at"), run.get("updated_at")
+            if not started or not ended:
+                continue
+            try:
+                delta = (datetime.fromisoformat(ended.replace("Z", "+00:00"))
+                         - datetime.fromisoformat(started.replace("Z", "+00:00")))
+            except ValueError:
+                continue
+            if 0 < delta.total_seconds() < 86400:
+                seconds.append(delta.total_seconds())
+
+        per_day = Counter(r["created_at"][:10] for r in finished)
+        failures = Counter(r["created_at"][:10] for r in finished
+                           if r["conclusion"] != "success")
+        self.db.write_daily(full_name, "ci_runs", sorted(per_day.items()))
+        if failures:
+            self.db.write_daily(full_name, "ci_failures", sorted(failures.items()))
+
+        return {
+            "ci_runs": len(finished),
+            "ci_success": len(good),
+            "ci_rate": round(len(good) / len(finished) * 100),
+            "ci_seconds": round(sum(seconds) / len(seconds)) if seconds else None,
+            "ci_last": finished[0]["conclusion"],
+        }
 
     async def _star_history(self, github: GitHub, full_name: str, repo: dict) -> None:
         """Rebuild the star curve from the dates GitHub keeps per stargazer."""

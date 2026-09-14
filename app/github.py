@@ -176,6 +176,12 @@ class GitHub:
         rows = await self._paged(f"/repos/{full_name}/forks", sort="oldest")
         return [r["created_at"][:10] for r in rows[:cap]]
 
+    async def workflow_runs(self, full_name: str, limit: int = 100) -> list[dict]:
+        """The most recent workflow runs, for the CI figures."""
+        data = await self._get(f"/repos/{full_name}/actions/runs",
+                               per_page=min(limit, PER_PAGE))
+        return (data or {}).get("workflow_runs", [])
+
     async def rate_limit(self) -> dict:
         data = await self._get("/rate_limit")
         return (data or {}).get("resources", {})

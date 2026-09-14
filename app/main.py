@@ -85,6 +85,7 @@ def _render(request: Request, name: str, context: dict):
         "t": i18n.translator(lang),
         "num": lambda v: i18n.number(v, lang),
         "ago": lambda v: i18n.ago(v, lang),
+        "duration": lambda v: i18n.duration(v, lang),
     }
     return templates.TemplateResponse(request, name, context)
 
@@ -167,6 +168,15 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         {"label": t("chart.stars"), "rows": db.series(full_name, "stars_total", days),
          "colour": "var(--gold)", "carry": True},
     ], days=days, lang=lang)
+    ci = None
+    if snap and snap["ci_runs"]:
+        ci = charts.area_chart([
+            {"label": t("chart.ci_runs"), "rows": db.series(full_name, "ci_runs", days),
+             "colour": "var(--accent)"},
+            {"label": t("chart.ci_failures"), "rows": db.series(full_name, "ci_failures", days),
+             "colour": "var(--gold)"},
+        ], days=days, lang=lang)
+
     installs = None
     if repo["ha_domain"]:
         installs = charts.area_chart([
@@ -177,6 +187,7 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
     return _render(request, "repo.html", {
         "repo": repo, "snap": snap, "days": days,
         "traffic": traffic, "clones": clones, "stars": stars, "installs": installs,
+        "ci": ci,
         "referrers": charts.bars(db.referrers(full_name), "source", "views", lang=lang),
         "paths": charts.bars(db.paths(full_name), "path", "views", lang=lang),
         "assets": db.assets(full_name),

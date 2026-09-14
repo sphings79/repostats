@@ -38,10 +38,17 @@
     ('kpi.contributors', snap['contributors'] if snap else 0, 'accent'),
     ('kpi.releases', snap['releases'] if snap else 0, 'violet'),
   ] %}
+  {% if snap and snap['ci_runs'] %}
+    {% set tiles = tiles + [
+      ('kpi.ci', (snap['ci_rate'] | string) + ' %', 'accent-2'),
+      ('kpi.ci_runs', snap['ci_runs'], 'accent'),
+      ('kpi.ci_time', duration(snap['ci_seconds']), 'violet'),
+    ] %}
+  {% endif %}
   {% for key, value, tone in tiles %}
     <article class="kpi {{ tone }}">
       <span class="kpi-label">{{ t(key) }}</span>
-      <span class="kpi-value">{{ num(value) }}</span>
+      <span class="kpi-value">{{ value if value is string else num(value) }}</span>
     </article>
   {% endfor %}
   {% if snap and snap['ha_installs'] %}
@@ -75,6 +82,13 @@
   </section>
   {% endif %}
 </div>
+
+{% if ci %}
+<section class="panel">
+  <h2>{{ t('repo.ci') }}</h2>
+  {{ ci | safe }}
+</section>
+{% endif %}
 
 <div class="split">
   <section class="panel">

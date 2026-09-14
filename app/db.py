@@ -46,6 +46,11 @@ CREATE TABLE IF NOT EXISTS snapshot (
     releases      INTEGER,
     downloads     INTEGER,
     ha_installs   INTEGER,
+    ci_runs       INTEGER,
+    ci_success    INTEGER,
+    ci_rate       INTEGER,
+    ci_seconds    INTEGER,
+    ci_last       TEXT,
     PRIMARY KEY (full_name, taken_at)
 );
 
@@ -109,6 +114,26 @@ class Database:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as con:
             con.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Add columns that newer versions introduced.
+
+        The file outlives the code, so a column added later has to reach an
+        existing database as well.
+        """
+        wanted = {
+            "snapshot": {
+                "ci_runs": "INTEGER", "ci_success": "INTEGER", "ci_rate": "INTEGER",
+                "ci_seconds": "INTEGER", "ci_last": "TEXT",
+            },
+        }
+        with self.connect() as con:
+            for table, columns in wanted.items():
+                have = {row["name"] for row in con.execute(f"PRAGMA table_info({table})")}
+                for name, kind in columns.items():
+                    if name not in have:
+                        con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
 
     def _conn(self) -> sqlite3.Connection:
         con = getattr(_local, "con", None)
@@ -172,7 +197,8 @@ class Database:
     def write_snapshot(self, full_name: str, values: dict) -> None:
         cols = ["stars", "forks", "watchers", "open_issues", "open_prs",
                 "closed_issues", "merged_prs", "size_kb", "contributors",
-                "commits", "releases", "downloads", "ha_installs"]
+                "commits", "releases", "downloads", "ha_installs",
+                "ci_runs", "ci_success", "ci_rate", "ci_seconds", "ci_last"]
         row = {c: values.get(c) for c in cols}
         row["full_name"] = full_name
         row["taken_at"] = _now()

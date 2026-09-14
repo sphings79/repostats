@@ -35,6 +35,9 @@ TEXTS: dict[str, dict[str, str]] = {
         "kpi.commits": "Commits",
         "kpi.contributors": "Mitwirkende",
         "kpi.releases": "Releases",
+        "kpi.ci": "CI-Erfolgsquote",
+        "kpi.ci_runs": "CI-Läufe",
+        "kpi.ci_time": "Ø CI-Dauer",
         "kpi.installs.long": "Home-Assistant-Installationen",
         "kpi.installs.note": "gemeldet von Instanzen mit aktivierter Statistik",
 
@@ -64,6 +67,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "repo.referrers": "Herkunft der Besucher",
         "repo.paths": "Meistbesuchte Seiten",
         "repo.assets": "Release-Downloads",
+        "repo.ci": "Workflow-Läufe",
+        "chart.ci_runs": "Läufe",
+        "chart.ci_failures": "Fehlschläge",
+        "col.ci": "CI",
         "repo.created": "angelegt",
         "repo.pushed": "zuletzt aktiv",
 
@@ -136,6 +143,9 @@ TEXTS: dict[str, dict[str, str]] = {
         "kpi.commits": "Commits",
         "kpi.contributors": "Contributors",
         "kpi.releases": "Releases",
+        "kpi.ci": "CI success rate",
+        "kpi.ci_runs": "CI runs",
+        "kpi.ci_time": "Avg CI time",
         "kpi.installs.long": "Home Assistant installations",
         "kpi.installs.note": "reported by instances with analytics enabled",
 
@@ -165,6 +175,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "repo.referrers": "Where visitors come from",
         "repo.paths": "Most visited pages",
         "repo.assets": "Release downloads",
+        "repo.ci": "Workflow runs",
+        "chart.ci_runs": "Runs",
+        "chart.ci_failures": "Failures",
+        "col.ci": "CI",
         "repo.created": "created",
         "repo.pushed": "last active",
 
@@ -265,6 +279,19 @@ def ago(value: str | None, lang: str) -> str:
     if days < 30:
         return t("ago.days", n=days)
     return moment.strftime("%d.%m.%Y" if lang == "de" else "%b %-d, %Y")
+
+
+def duration(seconds, lang: str) -> str:
+    """Seconds below a minute, minutes below an hour, hours above."""
+    if not seconds:
+        return "—"
+    seconds = int(seconds)
+    if seconds < 90:
+        return f"{seconds} s"
+    if seconds < 5400:
+        return f"{round(seconds / 60)} min"
+    hours = seconds / 3600
+    return f"{hours:.1f} h".replace(".", "," if lang == "de" else ".")
 
 
 def day_label(day: str, lang: str) -> str:
