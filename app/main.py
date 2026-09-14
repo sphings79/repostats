@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import charts
+from . import charts, i18n
 from .collector import Collector
 from .db import Database
 
@@ -72,12 +72,27 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Repo Stats", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
-templates.env.filters["num"] = lambda v: f"{int(v or 0):,}".replace(",", ".")
-templates.env.filters["ago"] = lambda v: _ago(v)
+
+
+def _render(request: Request, name: str, context: dict):
+    """Render with the language the visitor asked for."""
+    lang = i18n.pick(request.cookies.get("lang"),
+                     request.headers.get("accept-language"))
+    context = {
+        **context,
+        "lang": lang,
+        "languages": i18n.LANGUAGES,
+        "t": i18n.translator(lang),
+        "num": lambda v: i18n.number(v, lang),
+        "ago": lambda v: i18n.ago(v, lang),
+    }
+    return templates.TemplateResponse(request, name, context)
 
 
 @app.get("/", response_class=HTMLResponse)
 async def overview(request: Request, days: int = 30):
+    lang = i18n.pick(request.cookies.get("lang"), request.headers.get("accept-language"))
+    t = i18n.translator(lang)
     repos = db.repos()
     snapshots = db.latest_snapshots()
 
@@ -107,26 +122,29 @@ async def overview(request: Request, days: int = 30):
     }
 
     traffic = charts.area_chart([
-        {"label": "Aufrufe", "rows": db.totals_series("views", days), "colour": "var(--accent)"},
-        {"label": "Clones", "rows": db.totals_series("clones", days), "colour": "var(--accent-2)"},
-    ], days=days)
+        {"label": t("chart.views"), "rows": db.totals_series("views", days),
+         "colour": "var(--accent)"},
+        {"label": t("chart.clones"), "rows": db.totals_series("clones", days),
+         "colour": "var(--accent-2)"},
+    ], days=days, lang=lang)
     growth = charts.area_chart([
-        {"label": "Sterne", "rows": _carried_total(repos, "stars_total", days),
+        {"label": t("chart.stars"), "rows": _carried_total(repos, "stars_total", days),
          "colour": "var(--gold)", "carry": True},
-        {"label": "Downloads", "rows": db.snapshot_series("downloads", days),
+        {"label": t("chart.downloads"), "rows": db.snapshot_series("downloads", days),
          "colour": "var(--violet)", "carry": True},
-    ], days=days)
+    ], days=days, lang=lang)
 
-    return templates.TemplateResponse(request, "index.html", {
+    return _render(request, "index.html", {
         "rows": rows, "totals": totals, "traffic": traffic, "growth": growth,
-        "referrers": charts.bars(db.top_referrers(), "source", "views"),
-        "spark": charts.sparkline, "days": days,
-        "last_run": db.last_run(), "running": collector.running,
+        "referrers": charts.bars(db.top_referrers(), "source", "views", lang=lang),
+        "days": days, "last_run": db.last_run(), "running": collector.running,
     })
 
 
 @app.get("/repo/{owner}/{name}", response_class=HTMLResponse)
 async def repo_page(request: Request, owner: str, name: str, days: int = 30):
+    lang = i18n.pick(request.cookies.get("lang"), request.headers.get("accept-language"))
+    t = i18n.translator(lang)
     full_name = f"{owner}/{name}"
     repo = db.repo(full_name)
     if repo is None:
@@ -134,33 +152,33 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
 
     snap = db.latest_snapshot(full_name)
     traffic = charts.area_chart([
-        {"label": "Aufrufe", "rows": db.series(full_name, "views", days),
+        {"label": t("chart.views"), "rows": db.series(full_name, "views", days),
          "colour": "var(--accent)"},
-        {"label": "Eindeutige Besucher", "rows": db.series(full_name, "views_unique", days),
+        {"label": t("chart.views_unique"), "rows": db.series(full_name, "views_unique", days),
          "colour": "var(--accent-2)"},
-    ], days=days)
+    ], days=days, lang=lang)
     clones = charts.area_chart([
-        {"label": "Clones", "rows": db.series(full_name, "clones", days),
+        {"label": t("chart.clones"), "rows": db.series(full_name, "clones", days),
          "colour": "var(--accent-2)"},
-        {"label": "Eindeutig", "rows": db.series(full_name, "clones_unique", days),
+        {"label": t("chart.clones_unique"), "rows": db.series(full_name, "clones_unique", days),
          "colour": "var(--violet)"},
-    ], days=days)
+    ], days=days, lang=lang)
     stars = charts.area_chart([
-        {"label": "Sterne", "rows": db.series(full_name, "stars_total", days),
+        {"label": t("chart.stars"), "rows": db.series(full_name, "stars_total", days),
          "colour": "var(--gold)", "carry": True},
-    ], days=days)
+    ], days=days, lang=lang)
     installs = None
     if repo["ha_domain"]:
         installs = charts.area_chart([
-            {"label": "Installationen", "rows": db.series(full_name, "ha_installs", days),
+            {"label": t("chart.installs"), "rows": db.series(full_name, "ha_installs", days),
              "colour": "var(--accent-2)", "carry": True},
-        ], days=days)
+        ], days=days, lang=lang)
 
-    return templates.TemplateResponse(request, "repo.html", {
+    return _render(request, "repo.html", {
         "repo": repo, "snap": snap, "days": days,
         "traffic": traffic, "clones": clones, "stars": stars, "installs": installs,
-        "referrers": charts.bars(db.referrers(full_name), "source", "views"),
-        "paths": charts.bars(db.paths(full_name), "path", "views"),
+        "referrers": charts.bars(db.referrers(full_name), "source", "views", lang=lang),
+        "paths": charts.bars(db.paths(full_name), "path", "views", lang=lang),
         "assets": db.assets(full_name),
         "views14": _sum(db.series(full_name, "views", 14)),
         "clones14": _sum(db.series(full_name, "clones", 14)),
@@ -170,7 +188,7 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request):
-    return templates.TemplateResponse(request, "settings.html", {
+    return _render(request, "settings.html", {
         "repos": db.repos(tracked_only=False),
         "runs": db.runs(),
         "running": collector.running,
@@ -197,6 +215,16 @@ async def discover():
 async def collect(kind: str = Form("full")):
     asyncio.create_task(collector.run("quick" if kind == "quick" else "full"))
     return RedirectResponse("/settings", status_code=303)
+
+
+@app.get("/lang/{code}")
+async def set_language(code: str, request: Request):
+    """Remember a language choice for a year."""
+    target = request.headers.get("referer", "/")
+    response = RedirectResponse(target, status_code=303)
+    if code in i18n.LANGUAGES:
+        response.set_cookie("lang", code, max_age=31_536_000, samesite="lax")
+    return response
 
 
 @app.get("/health")
@@ -241,26 +269,3 @@ def _carried_total(repos, metric: str, days: int) -> list[dict]:
 def _sum(rows) -> int:
     return sum(int(r["value"] or 0) for r in rows)
 
-
-def _ago(value: str | None) -> str:
-    if not value:
-        return "—"
-    try:
-        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return value
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=timezone.utc)
-    delta = datetime.now(timezone.utc) - moment
-    minutes = int(delta.total_seconds() // 60)
-    if minutes < 1:
-        return "gerade eben"
-    if minutes < 60:
-        return f"vor {minutes} min"
-    hours = minutes // 60
-    if hours < 24:
-        return f"vor {hours} h"
-    days = hours // 24
-    if days < 30:
-        return f"vor {days} d"
-    return moment.strftime("%d.%m.%Y")

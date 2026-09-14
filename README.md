@@ -1,5 +1,7 @@
 # Repo Stats
 
+*[Deutsche Fassung](README.de.md)*
+
 A small self-hosted dashboard for everything GitHub knows about your own
 repositories — and for the numbers it throws away after two weeks.
 
@@ -59,7 +61,8 @@ is one file copy.
 
 ## Notes
 
-- The interface is in German; the code and its comments are in English.
+- The interface speaks German and English; the switch sits in the header.
+- Code and comments are in English.
 - Nothing leaves your network. The only outbound calls go to the GitHub API
   and to the Home Assistant analytics endpoint.
 - There is no authentication. Keep it on your own network or behind a proxy

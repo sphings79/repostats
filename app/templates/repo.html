@@ -4,75 +4,73 @@
 
 <section class="hero">
   <div>
-    <a class="back" href="/">← Übersicht</a>
+    <a class="back" href="/">{{ t('repo.back') }}</a>
     <h1>{{ repo['name'] }}</h1>
-    <p class="sub">
-      {% if repo['description'] %}{{ repo['description'] }}{% endif %}
-    </p>
+    <p class="sub">{% if repo['description'] %}{{ repo['description'] }}{% endif %}</p>
     <p class="meta">
       <a href="https://github.com/{{ repo['full_name'] }}" target="_blank" rel="noreferrer">github.com/{{ repo['full_name'] }}</a>
       {% if repo['language'] %}<span>{{ repo['language'] }}</span>{% endif %}
       {% if repo['license'] %}<span>{{ repo['license'] }}</span>{% endif %}
       {% if repo['ha_domain'] %}<span class="tag good">HA: {{ repo['ha_domain'] }}</span>{% endif %}
-      <span>angelegt {{ repo['created_at'] | ago }}</span>
-      <span>zuletzt aktiv {{ repo['pushed_at'] | ago }}</span>
+      <span>{{ t('repo.created') }} {{ ago(repo['created_at']) }}</span>
+      <span>{{ t('repo.pushed') }} {{ ago(repo['pushed_at']) }}</span>
     </p>
   </div>
   <div class="range">
     {% for option in [30, 90, 180, 365] %}
-      <a href="?days={{ option }}" {% if days == option %}class="on"{% endif %}>{{ option }} T</a>
+      <a href="?days={{ option }}" {% if days == option %}class="on"{% endif %}>{{ option }}{{ 'T' if lang == 'de' else 'd' }}</a>
     {% endfor %}
   </div>
 </section>
 
 <section class="kpis">
   {% set tiles = [
-    ('Sterne', snap['stars'] if snap else 0, 'gold'),
-    ('Forks', snap['forks'] if snap else 0, 'violet'),
-    ('Beobachter', snap['watchers'] if snap else 0, 'accent'),
-    ('Aufrufe (14 T)', views14, 'accent'),
-    ('Eindeutige Besucher', uniques14, 'accent-2'),
-    ('Clones (14 T)', clones14, 'accent-2'),
-    ('Downloads', snap['downloads'] if snap else 0, 'violet'),
-    ('Offene Issues', snap['open_issues'] if snap else 0, 'gold'),
-    ('Offene PRs', snap['open_prs'] if snap else 0, 'gold'),
-    ('Commits', snap['commits'] if snap else 0, 'accent'),
-    ('Mitwirkende', snap['contributors'] if snap else 0, 'accent'),
-    ('Releases', snap['releases'] if snap else 0, 'violet'),
+    ('kpi.stars', snap['stars'] if snap else 0, 'gold'),
+    ('kpi.forks', snap['forks'] if snap else 0, 'violet'),
+    ('kpi.watchers', snap['watchers'] if snap else 0, 'accent'),
+    ('kpi.views14', views14, 'accent'),
+    ('kpi.uniques', uniques14, 'accent-2'),
+    ('kpi.clones14', clones14, 'accent-2'),
+    ('kpi.downloads', snap['downloads'] if snap else 0, 'violet'),
+    ('kpi.issues', snap['open_issues'] if snap else 0, 'gold'),
+    ('kpi.prs', snap['open_prs'] if snap else 0, 'gold'),
+    ('kpi.commits', snap['commits'] if snap else 0, 'accent'),
+    ('kpi.contributors', snap['contributors'] if snap else 0, 'accent'),
+    ('kpi.releases', snap['releases'] if snap else 0, 'violet'),
   ] %}
-  {% for label, value, tone in tiles %}
+  {% for key, value, tone in tiles %}
     <article class="kpi {{ tone }}">
-      <span class="kpi-label">{{ label }}</span>
-      <span class="kpi-value">{{ value | num }}</span>
+      <span class="kpi-label">{{ t(key) }}</span>
+      <span class="kpi-value">{{ num(value) }}</span>
     </article>
   {% endfor %}
   {% if snap and snap['ha_installs'] %}
     <article class="kpi accent-2 wide">
-      <span class="kpi-label">Home-Assistant-Installationen</span>
-      <span class="kpi-value">{{ snap['ha_installs'] | num }}</span>
-      <span class="kpi-note">gemeldet von Instanzen mit aktivierter Statistik</span>
+      <span class="kpi-label">{{ t('kpi.installs.long') }}</span>
+      <span class="kpi-value">{{ num(snap['ha_installs']) }}</span>
+      <span class="kpi-note">{{ t('kpi.installs.note') }}</span>
     </article>
   {% endif %}
 </section>
 
 <section class="panel">
-  <h2>Aufrufe</h2>
+  <h2>{{ t('repo.views') }}</h2>
   {{ traffic | safe }}
 </section>
 
 <section class="panel">
-  <h2>Clones</h2>
+  <h2>{{ t('repo.clones') }}</h2>
   {{ clones | safe }}
 </section>
 
 <div class="split">
   <section class="panel">
-    <h2>Sterne im Verlauf</h2>
+    <h2>{{ t('repo.stars') }}</h2>
     {{ stars | safe }}
   </section>
   {% if installs %}
   <section class="panel">
-    <h2>Installationen</h2>
+    <h2>{{ t('repo.installs') }}</h2>
     {{ installs | safe }}
   </section>
   {% endif %}
@@ -80,28 +78,28 @@
 
 <div class="split">
   <section class="panel">
-    <h2>Herkunft der Besucher</h2>
+    <h2>{{ t('repo.referrers') }}</h2>
     {{ referrers | safe }}
   </section>
   <section class="panel">
-    <h2>Meistbesuchte Seiten</h2>
+    <h2>{{ t('repo.paths') }}</h2>
     {{ paths | safe }}
   </section>
 </div>
 
 {% if assets %}
 <section class="panel">
-  <h2>Release-Downloads</h2>
+  <h2>{{ t('repo.assets') }}</h2>
   <div class="table-wrap">
     <table class="repos">
-      <thead><tr><th>Release</th><th>Datei</th><th class="n">Downloads</th><th>Veröffentlicht</th></tr></thead>
+      <thead><tr><th>{{ t('col.release') }}</th><th>{{ t('col.file') }}</th><th class="n">{{ t('col.downloads') }}</th><th>{{ t('col.published') }}</th></tr></thead>
       <tbody>
       {% for asset in assets %}
         <tr>
           <td class="mono">{{ asset['tag'] }}</td>
           <td class="mono">{{ asset['asset'] }}</td>
-          <td class="n">{{ asset['downloads'] | num }}</td>
-          <td class="ago">{{ asset['published'] | ago }}</td>
+          <td class="n">{{ num(asset['downloads']) }}</td>
+          <td class="ago">{{ ago(asset['published']) }}</td>
         </tr>
       {% endfor %}
       </tbody>

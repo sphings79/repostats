@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,20 +14,25 @@
     <span>Repo&nbsp;Stats</span>
   </a>
   <nav>
-    <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Übersicht</a>
-    <a href="/settings" {% if request.url.path == '/settings' %}class="active"{% endif %}>Verwaltung</a>
+    <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>{{ t('nav.overview') }}</a>
+    <a href="/settings" {% if request.url.path == '/settings' %}class="active"{% endif %}>{{ t('nav.settings') }}</a>
   </nav>
+  <div class="lang">
+    {% for code, label in languages.items() %}
+      <a href="/lang/{{ code }}" {% if code == lang %}class="on"{% endif %} title="{{ label }}">{{ code | upper }}</a>
+    {% endfor %}
+  </div>
 </header>
 
 <main>{% block content %}{% endblock %}</main>
 
 <footer>
   {% if last_run is defined and last_run %}
-    Letzter Lauf {{ last_run['started_at'] | ago }}
-    {% if last_run['ok'] %}<span class="ok">erfolgreich</span>{% else %}<span class="bad">mit Fehlern</span>{% endif %}
-    · {{ last_run['repos'] or 0 }} Repos
+    {{ t('footer.last_run') }} {{ ago(last_run['started_at']) }}
+    {% if last_run['ok'] %}<span class="ok">{{ t('footer.ok') }}</span>{% else %}<span class="bad">{{ t('footer.failed') }}</span>{% endif %}
+    · {{ last_run['repos'] or 0 }} {{ t('col.repos') }}
   {% endif %}
-  {% if running %}<span class="pulse">Sammlung läuft …</span>{% endif %}
+  {% if running %}<span class="pulse">{{ t('footer.collecting') }}</span>{% endif %}
 </footer>
 
 <script src="/static/app.js"></script>

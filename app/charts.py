@@ -7,6 +7,8 @@ JavaScript only adds hover read-outs on top of what is already drawn.
 from datetime import date, datetime, timedelta
 from html import escape
 
+from .i18n import day_label, translator
+
 
 def _points(rows) -> list[tuple[str, float]]:
     return [(r["day"], float(r["value"] or 0)) for r in rows]
@@ -70,7 +72,7 @@ def sparkline(rows, width: int = 132, height: int = 34, carry: bool = False,
 
 
 def area_chart(series: list[dict], days: int = 90, height: int = 220,
-               width: int = 960) -> str:
+               width: int = 960, lang: str = "de") -> str:
     """A larger chart with a hover read-out, for one or two series."""
     prepared = []
     for entry in series:
@@ -79,7 +81,7 @@ def area_chart(series: list[dict], days: int = 90, height: int = 220,
 
     all_values = [v for entry in prepared for _d, v in entry["points"]]
     if not all_values:
-        return '<p class="empty">Noch keine Daten – der erste Lauf steht aus.</p>'
+        return f'<p class="empty">{translator(lang)("chart.empty")}</p>'
 
     high = max(all_values) or 1
     low = min(min(all_values), 0)
@@ -122,7 +124,7 @@ def area_chart(series: list[dict], days: int = 90, height: int = 220,
         if 0 <= i < len(pts):
             anchor = "start" if i == 0 else ("end" if i == count - 1 else "middle")
             parts.append(f'<text x="{x(i):.1f}" y="{height - 8}" class="axis" '
-                         f'text-anchor="{anchor}">{_day_label(pts[i][0])}</text>')
+                         f'text-anchor="{anchor}">{day_label(pts[i][0], lang)}</text>')
 
     # one hover column per day, read by the tooltip script
     payload = []
@@ -146,11 +148,12 @@ def area_chart(series: list[dict], days: int = 90, height: int = 220,
             f'<div class="legend">{legend}</div>')
 
 
-def bars(rows, label_key: str, value_key: str, limit: int = 10) -> str:
+def bars(rows, label_key: str, value_key: str, limit: int = 10,
+         lang: str = "de") -> str:
     """A horizontal bar list, used for referrers and popular paths."""
     rows = list(rows)[:limit]
     if not rows:
-        return '<p class="empty">Keine Daten im 14-Tage-Fenster.</p>'
+        return f'<p class="empty">{translator(lang)("bars.empty")}</p>'
     high = max(r[value_key] for r in rows) or 1
     out = ['<ul class="bars">']
     for row in rows:
@@ -159,9 +162,14 @@ def bars(rows, label_key: str, value_key: str, limit: int = 10) -> str:
             f'<li><span class="bar-label" title="{escape(str(row[label_key]))}">'
             f'{escape(str(row[label_key]))}</span>'
             f'<span class="bar-track"><span class="bar-fill" style="width:{share:.1f}%"></span></span>'
-            f'<span class="bar-value">{row[value_key]:,}</span></li>'.replace(",", "."))
+            f'<span class="bar-value">{_group(row[value_key], lang)}</span></li>')
     out.append("</ul>")
     return "".join(out)
+
+
+def _group(value: int, lang: str) -> str:
+    text = f"{int(value):,}"
+    return text.replace(",", ".") if lang == "de" else text
 
 
 def _short(value: float) -> str:
@@ -172,9 +180,3 @@ def _short(value: float) -> str:
         return f"{value / 1000:.1f}k".replace(".0k", "k")
     return f"{value:.0f}"
 
-
-def _day_label(day: str) -> str:
-    try:
-        return datetime.fromisoformat(day).strftime("%d.%m.")
-    except ValueError:
-        return day

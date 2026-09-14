@@ -243,3 +243,12 @@ td.name label { cursor: pointer; font-weight: 600; }
   .hero { align-items: flex-start; }
   td.name .desc { max-width: 24ch; }
 }
+
+/* language switch */
+.lang { margin-left: auto; display: flex; gap: 2px; }
+.lang a {
+  padding: 5px 9px; border-radius: 7px; font-size: 11.5px; font-weight: 600;
+  letter-spacing: .4px; color: var(--dim); text-decoration: none;
+}
+.lang a:hover { color: var(--text); }
+.lang a.on { background: rgba(65, 189, 245, .14); color: var(--accent); }

@@ -3,67 +3,67 @@
 
 <section class="hero">
   <div>
-    <h1>Alle Repositories auf einen Blick</h1>
-    <p class="sub">{{ totals.repos }} beobachtet · Zahlen werden stündlich geholt, der Verlauf täglich gesichert</p>
+    <h1>{{ t('overview.title') }}</h1>
+    <p class="sub">{{ t('overview.sub', n=totals.repos) }}</p>
   </div>
   <div class="range">
     {% for option in [30, 90, 180, 365] %}
-      <a href="?days={{ option }}" {% if days == option %}class="on"{% endif %}>{{ option }} T</a>
+      <a href="?days={{ option }}" {% if days == option %}class="on"{% endif %}>{{ option }}{{ 'T' if lang == 'de' else 'd' }}</a>
     {% endfor %}
   </div>
 </section>
 
 <section class="kpis">
   {% set tiles = [
-    ('Sterne', totals.stars, 'gold'),
-    ('Forks', totals.forks, 'violet'),
-    ('Beobachter', totals.watchers, 'accent'),
-    ('Aufrufe (14 T)', totals.views, 'accent'),
-    ('Clones (14 T)', totals.clones, 'accent-2'),
-    ('Release-Downloads', totals.downloads, 'violet'),
-    ('HA-Installationen', totals.installs, 'accent-2'),
-    ('Offene Issues', totals.issues, 'gold'),
+    ('kpi.stars', totals.stars, 'gold'),
+    ('kpi.forks', totals.forks, 'violet'),
+    ('kpi.watchers', totals.watchers, 'accent'),
+    ('kpi.views14', totals.views, 'accent'),
+    ('kpi.clones14', totals.clones, 'accent-2'),
+    ('kpi.downloads', totals.downloads, 'violet'),
+    ('kpi.installs', totals.installs, 'accent-2'),
+    ('kpi.issues', totals.issues, 'gold'),
   ] %}
-  {% for label, value, tone in tiles %}
+  {% for key, value, tone in tiles %}
     <article class="kpi {{ tone }}">
-      <span class="kpi-label">{{ label }}</span>
-      <span class="kpi-value">{{ value | num }}</span>
+      <span class="kpi-label">{{ t(key) }}</span>
+      <span class="kpi-value">{{ num(value) }}</span>
     </article>
   {% endfor %}
 </section>
 
 <section class="panel">
-  <h2>Verkehr über alle Repositories</h2>
+  <h2>{{ t('overview.traffic') }}</h2>
   {{ traffic | safe }}
 </section>
 
 <div class="split">
   <section class="panel">
-    <h2>Sterne und Downloads</h2>
+    <h2>{{ t('overview.growth') }}</h2>
     {{ growth | safe }}
   </section>
   <section class="panel">
-    <h2>Woher die Besucher kommen</h2>
+    <h2>{{ t('overview.referrers') }}</h2>
     {{ referrers | safe }}
   </section>
 </div>
 
 <section class="panel">
-  <h2>Repositories</h2>
+  <h2>{{ t('overview.repos') }}</h2>
   <div class="table-wrap">
     <table class="repos" id="repo-table">
       <thead>
         <tr>
-          <th data-sort="text">Repository</th>
+          <th data-sort="text">{{ t('col.repo') }}</th>
           <th data-sort="num">★</th>
-          <th data-sort="num">Forks</th>
-          <th data-sort="num">Issues</th>
-          <th data-sort="num">Aufrufe</th>
-          <th data-sort="num">Clones</th>
-          <th data-sort="num">Downloads</th>
+          <th data-sort="num">{{ t('kpi.forks') }}</th>
+          <th data-sort="num">{{ t('col.issues') }}</th>
+          <th data-sort="num">{{ t('col.views') }}</th>
+          <th data-sort="num">{{ t('col.clones') }}</th>
+          <th data-sort="num">{{ t('col.downloads') }}</th>
           <th data-sort="num">HA</th>
-          <th>30 Tage</th>
-          <th data-sort="text">Aktiv</th>
+          <th>{{ t('col.30days') }}</th>
+          <th data-sort="text">{{ t('col.active') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -71,27 +71,27 @@
         <tr>
           <td class="name">
             <a href="/repo/{{ row.repo['full_name'] }}">{{ row.repo['name'] }}</a>
-            {% if row.repo['private'] %}<span class="tag">privat</span>{% endif %}
-            {% if row.repo['fork'] %}<span class="tag">Fork</span>{% endif %}
-            {% if row.repo['archived'] %}<span class="tag warn">archiviert</span>{% endif %}
+            {% if row.repo['private'] %}<span class="tag">{{ t('tag.private') }}</span>{% endif %}
+            {% if row.repo['fork'] %}<span class="tag">{{ t('tag.fork') }}</span>{% endif %}
+            {% if row.repo['archived'] %}<span class="tag warn">{{ t('tag.archived') }}</span>{% endif %}
             {% if row.repo['description'] %}<span class="desc">{{ row.repo['description'] }}</span>{% endif %}
           </td>
-          <td class="n">{{ (row.snap['stars'] if row.snap else 0) | num }}</td>
-          <td class="n">{{ (row.snap['forks'] if row.snap else 0) | num }}</td>
-          <td class="n">{{ (row.snap['open_issues'] if row.snap else 0) | num }}</td>
-          <td class="n">{{ row.views | num }}</td>
-          <td class="n">{{ row.clones | num }}</td>
-          <td class="n">{{ (row.snap['downloads'] if row.snap else 0) | num }}</td>
-          <td class="n">{% if row.snap and row.snap['ha_installs'] %}{{ row.snap['ha_installs'] | num }}{% else %}<span class="dash">—</span>{% endif %}</td>
+          <td class="n">{{ num(row.snap['stars'] if row.snap else 0) }}</td>
+          <td class="n">{{ num(row.snap['forks'] if row.snap else 0) }}</td>
+          <td class="n">{{ num(row.snap['open_issues'] if row.snap else 0) }}</td>
+          <td class="n">{{ num(row.views) }}</td>
+          <td class="n">{{ num(row.clones) }}</td>
+          <td class="n">{{ num(row.snap['downloads'] if row.snap else 0) }}</td>
+          <td class="n">{% if row.snap and row.snap['ha_installs'] %}{{ num(row.snap['ha_installs']) }}{% else %}<span class="dash">—</span>{% endif %}</td>
           <td class="spark-cell">{{ row.spark | safe }}</td>
-          <td class="ago">{{ row.repo['pushed_at'] | ago }}</td>
+          <td class="ago">{{ ago(row.repo['pushed_at']) }}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
   {% if not rows %}
-    <p class="empty">Noch keine Repositories ausgewählt — das geht in der <a href="/settings">Verwaltung</a>.</p>
+    <p class="empty">{{ t('overview.none') }} <a href="/settings">{{ t('overview.none.link') }}</a>.</p>
   {% endif %}
 </section>
 
