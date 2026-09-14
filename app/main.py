@@ -136,7 +136,7 @@ async def overview(request: Request, days: int = 30):
         "watchers": sum((r["snap"]["watchers"] or 0) for r in rows if r["snap"]),
         "issues": sum((r["snap"]["open_issues"] or 0) for r in rows if r["snap"]),
         "downloads": sum((r["snap"]["downloads"] or 0) for r in rows if r["snap"]),
-        "installs": sum((r["snap"]["ha_installs"] or 0) for r in rows if r["snap"]),
+        "installs": _install_total(rows),
         "views": sum(r["views"] for r in rows),
         "clones": sum(r["clones"] for r in rows),
         "views_unique": sum(r["views_unique"] for r in rows),
@@ -315,6 +315,24 @@ async def health():
         "last_run_ok": bool(run["ok"]) if run else None,
         "running": collector.running,
     })
+
+
+def _install_total(rows) -> int:
+    """Installations, counted once per integration and without forks.
+
+    Two repositories can ship the same integration domain — a rename, a split
+    into a suite — and Home Assistant reports one number for the domain, not
+    per repository. And a fork carries the domain of the project it came from,
+    so its number belongs to that project, not here.
+    """
+    seen: dict[str, int] = {}
+    for row in rows:
+        snap, repo = row["snap"], row["repo"]
+        if not snap or not snap["ha_installs"] or repo["fork"]:
+            continue
+        domain = repo["ha_domain"] or repo["full_name"]
+        seen[domain] = max(seen.get(domain, 0), snap["ha_installs"])
+    return sum(seen.values())
 
 
 def _carried_total(repos, metric: str, days: int) -> list[dict]:

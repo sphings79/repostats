@@ -163,13 +163,28 @@ class GitHub:
         """
         out: list[str] = []
         page = 1
+        headers = {"Accept": "application/vnd.github.star+json",
+                   "Authorization": self._client.headers.get("Authorization", "")}
         while len(out) < cap:
             response = await self._client.get(
                 f"/repos/{full_name}/stargazers",
                 params={"per_page": PER_PAGE, "page": page},
-                headers={"Accept": "application/vnd.github.star+json"},
+                headers=headers,
             )
+            # Fine-grained tokens are not allowed on this endpoint, but it is
+            # public for public repositories — so ask again without the token
+            # rather than losing the whole star history.
+            if response.status_code == 403 and "Authorization" in headers:
+                headers = {**headers, "Authorization": ""}
+                response = await self._client.get(
+                    f"/repos/{full_name}/stargazers",
+                    params={"per_page": PER_PAGE, "page": page},
+                    headers=headers,
+                )
             if response.status_code != 200:
+                if page == 1:
+                    _LOGGER.debug("No star history for %s (%s)", full_name,
+                                  response.status_code)
                 break
             batch = response.json() or []
             out.extend(row["starred_at"][:10] for row in batch if "starred_at" in row)
