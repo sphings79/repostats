@@ -24,6 +24,7 @@ class RateLimited(Exception):
 class GitHub:
     def __init__(self, token: str, login: str, timeout: float = 30.0):
         self.login = login
+        self._public: httpx.AsyncClient | None = None
         self._client = httpx.AsyncClient(
             base_url=API,
             timeout=timeout,
@@ -37,6 +38,28 @@ class GitHub:
 
     async def aclose(self) -> None:
         await self._client.aclose()
+        if self._public is not None:
+            await self._public.aclose()
+
+    def _public_client(self) -> httpx.AsyncClient:
+        """A client without the token, for endpoints it is refused on.
+
+        Fine-grained tokens are rejected on the stargazers endpoint, which is
+        public for public repositories. Sending no token at all works, at the
+        cost of a lower rate limit — and only repositories whose star count
+        changed are asked, so that limit is not a problem in practice.
+        """
+        if self._public is None:
+            self._public = httpx.AsyncClient(
+                base_url=API,
+                timeout=30.0,
+                headers={
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                    "User-Agent": "repostats",
+                },
+            )
+        return self._public
 
     async def _get(self, path: str, **params) -> Any:
         """One request, with a polite retry when the rate limit is hit."""
@@ -163,20 +186,18 @@ class GitHub:
         """
         out: list[str] = []
         page = 1
-        headers = {"Accept": "application/vnd.github.star+json",
-                   "Authorization": self._client.headers.get("Authorization", "")}
+        client = self._client
+        headers = {"Accept": "application/vnd.github.star+json"}
+
         while len(out) < cap:
-            response = await self._client.get(
+            response = await client.get(
                 f"/repos/{full_name}/stargazers",
                 params={"per_page": PER_PAGE, "page": page},
                 headers=headers,
             )
-            # Fine-grained tokens are not allowed on this endpoint, but it is
-            # public for public repositories — so ask again without the token
-            # rather than losing the whole star history.
-            if response.status_code == 403 and "Authorization" in headers:
-                headers = {**headers, "Authorization": ""}
-                response = await self._client.get(
+            if response.status_code == 403 and client is self._client:
+                client = self._public_client()
+                response = await client.get(
                     f"/repos/{full_name}/stargazers",
                     params={"per_page": PER_PAGE, "page": page},
                     headers=headers,
