@@ -202,6 +202,12 @@ class Database:
             for name in full_names:
                 con.execute("UPDATE repo SET tracked = 1 WHERE full_name = ?", (name,))
 
+    def set_tracked_one(self, full_name: str, tracked: bool) -> None:
+        """Follow or stop following one repository, leaving the rest alone."""
+        with self.connect() as con:
+            con.execute("UPDATE repo SET tracked = ? WHERE full_name = ?",
+                        (1 if tracked else 0, full_name))
+
     def set_ha_domain(self, full_name: str, domain: str | None) -> None:
         with self.connect() as con:
             con.execute("UPDATE repo SET ha_domain = ? WHERE full_name = ?",

@@ -323,6 +323,20 @@ async def issues(request: Request, repo: str | None = None):
     })
 
 
+@app.post("/repo/{owner}/{name}/tracked")
+async def set_tracked(owner: str, name: str, tracked: str = Form("0")):
+    """Stop following a repository from its own page, or pick it up again.
+
+    The collected numbers stay in the database — this only decides whether it
+    is asked about from now on.
+    """
+    full_name = f"{owner}/{name}"
+    follow = tracked == "1"
+    db.set_tracked_one(full_name, follow)
+    _LOGGER.info("%s is %s followed", full_name, "now" if follow else "no longer")
+    return RedirectResponse(f"/repo/{full_name}" if follow else "/", status_code=303)
+
+
 @app.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request):
     return _render(request, "settings.html", {

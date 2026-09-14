@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Repo Stats{% endblock %}</title>
 <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📊</text></svg>">
+<link rel="icon" type="image/svg+xml" href="/static/icon.svg?v={{ asset_version }}">
+<meta name="theme-color" content="#0f1720">
 </head>
 <body>
 <header class="top">
   <a class="brand" href="/">
-    <span class="dot"></span>
+    <img class="mark" src="/static/logo.svg?v={{ asset_version }}" alt="" width="22" height="22">
     <span>Repo&nbsp;Stats</span>
   </a>
   {% if request.url.path != '/login' %}

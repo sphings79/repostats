@@ -83,6 +83,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "col.repos": "Repos",
 
         "repo.back": "← Übersicht",
+        "repo.untrack": "Nicht mehr beobachten",
+        "repo.track": "Wieder beobachten",
+        "repo.untracked": "Dieses Repository wird nicht mehr abgefragt. Die bisher gesammelten Zahlen bleiben erhalten.",
+        "repo.untrack.confirm": "{name} nicht mehr beobachten? Die gesammelten Zahlen bleiben erhalten.",
         "repo.views": "Aufrufe",
         "repo.clones": "Clones",
         "repo.stars": "Sterne im Verlauf",
@@ -258,6 +262,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "col.repos": "Repos",
 
         "repo.back": "← Overview",
+        "repo.untrack": "Stop following",
+        "repo.track": "Follow again",
+        "repo.untracked": "This repository is no longer asked about. What was collected stays.",
+        "repo.untrack.confirm": "Stop following {name}? The numbers collected so far are kept.",
         "repo.views": "Views",
         "repo.clones": "Clones",
         "repo.stars": "Stars over time",

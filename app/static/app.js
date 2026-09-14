@@ -241,3 +241,10 @@ document.querySelectorAll(".pick select").forEach((select) => {
   wrap.append(button, list, select);
   label();
 });
+
+// Forms that ask before they act.
+document.querySelectorAll("form[data-confirm]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+  });
+});

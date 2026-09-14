@@ -50,10 +50,9 @@ body {
   font-weight: 700; font-size: 16px; letter-spacing: .2px;
   color: var(--text); text-decoration: none;
 }
-.brand .dot {
-  width: 11px; height: 11px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 14px rgba(65, 189, 245, .55);
+.brand .mark {
+  width: 22px; height: 22px; display: block;
+  filter: drop-shadow(0 0 10px rgba(65, 189, 245, .35));
 }
 .top nav { display: flex; gap: 18px; }
 .top nav a {
@@ -416,3 +415,8 @@ h2 .plain:hover { color: var(--accent); }
 .kpi.linked:hover .out { color: var(--accent); }
 /* jumping to a panel should not hide it under the sticky header */
 .panel[id] { scroll-margin-top: 80px; }
+
+/* actions next to the page heading */
+.head-actions { display: flex; gap: 8px; align-items: center; }
+.head-actions form { margin: 0; }
+button.ghost.danger:hover { color: #ff8585; border-color: rgba(255, 107, 107, .5); }
