@@ -398,12 +398,22 @@ class Database:
                    ORDER BY views DESC LIMIT ?""",
                 (full_name, full_name, limit)).fetchall()
 
-    def assets(self, full_name: str) -> list[sqlite3.Row]:
+    def assets(self, full_name: str | None = None) -> list[sqlite3.Row]:
+        """Release files of one repository, or of all followed ones."""
+        if full_name:
+            sql = """SELECT full_name, tag, asset, downloads, published
+                     FROM release_asset WHERE full_name = ?
+                     ORDER BY published DESC, asset"""
+            params: tuple = (full_name,)
+        else:
+            sql = """SELECT a.full_name, a.tag, a.asset, a.downloads, a.published
+                     FROM release_asset a
+                     JOIN repo r ON r.full_name = a.full_name AND r.tracked = 1
+                     WHERE a.downloads > 0
+                     ORDER BY a.downloads DESC LIMIT 60"""
+            params = ()
         with self.connect() as con:
-            return con.execute(
-                """SELECT tag, asset, downloads, published FROM release_asset
-                   WHERE full_name = ? ORDER BY published DESC, asset""",
-                (full_name,)).fetchall()
+            return con.execute(sql, params).fetchall()
 
     def top_referrers(self, limit: int = 12) -> list[sqlite3.Row]:
         with self.connect() as con:

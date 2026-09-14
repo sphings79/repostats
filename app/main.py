@@ -121,7 +121,7 @@ def _render(request: Request, name: str, context: dict):
         "ago": lambda v: i18n.ago(v, lang),
         "duration": lambda v: i18n.duration(v, lang),
         "auth_enabled": auth.enabled,
-        "assets": ASSETS,
+        "asset_version": ASSETS,
     }
     return templates.TemplateResponse(request, name, context)
 
@@ -241,6 +241,69 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         "clones14": _sum(db.series(full_name, "clones", 14)),
         "uniques14": _sum(db.series(full_name, "views_unique", 14)),
         "clone_uniques14": _sum(db.series(full_name, "clones_unique", 14)),
+    })
+
+
+# Which repository column or daily metric sits behind each tile.
+BREAKDOWN = {
+    "stars":     {"column": "stars",     "title": "kpi.stars"},
+    "forks":     {"column": "forks",     "title": "kpi.forks"},
+    "watchers":  {"column": "watchers",  "title": "kpi.watchers"},
+    "downloads": {"column": "downloads", "title": "kpi.downloads"},
+    "installs":  {"column": "ha_installs", "title": "kpi.installs.long"},
+    "views":     {"daily": "views", "unique": "views_unique", "title": "kpi.visitors"},
+    "clones":    {"daily": "clones", "unique": "clones_unique", "title": "kpi.cloners"},
+}
+
+
+@app.get("/top/{metric}", response_class=HTMLResponse)
+async def breakdown(request: Request, metric: str, days: int = 14):
+    """Which repositories a number on the overview is made of."""
+    spec = BREAKDOWN.get(metric)
+    if spec is None:
+        return RedirectResponse("/", status_code=303)
+
+    lang = i18n.pick(request.cookies.get("lang"), request.headers.get("accept-language"))
+    t = i18n.translator(lang)
+    repos = db.repos()
+    snapshots = db.latest_snapshots()
+
+    rows = []
+    for repo in repos:
+        snap = snapshots.get(repo["full_name"])
+        if "daily" in spec:
+            value = _sum(db.series(repo["full_name"], spec["daily"], days))
+            second = _sum(db.series(repo["full_name"], spec["unique"], days))
+            value, second = second, value          # lead with the distinct count
+        else:
+            value = (snap[spec["column"]] if snap else 0) or 0
+            second = None
+        if value:
+            rows.append({"repo": repo, "value": value, "second": second,
+                         "snap": snap})
+
+    rows.sort(key=lambda r: r["value"], reverse=True)
+    total = sum(r["value"] for r in rows)
+    second_total = sum(r["second"] or 0 for r in rows) if "daily" in spec else None
+
+    # installations are per integration, and a fork carries a foreign domain
+    note = None
+    if metric == "installs":
+        note = t("hint.installs")
+        seen = set()
+        for row in rows:
+            domain = row["repo"]["ha_domain"]
+            row["muted"] = bool(row["repo"]["fork"]) or domain in seen
+            if domain:
+                seen.add(domain)
+        total = sum(r["value"] for r in rows if not r["muted"])
+
+    return _render(request, "top.html", {
+        "metric": metric, "rows": rows, "total": total,
+        "second_total": second_total, "days": days,
+        "title": t(spec["title"]), "note": note,
+        "assets": db.assets(None) if metric == "downloads" else None,
+        "last_run": db.last_run(),
     })
 
 

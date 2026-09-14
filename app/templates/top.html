@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <a class="back" href="/">{{ t('repo.back') }}</a>
+    <h1>{{ title }}</h1>
+    <p class="sub">
+      {{ num(total) }}
+      {% if second_total %}· {{ t('top.of_raw', n=num(second_total)) }}{% endif %}
+      · {{ t('top.across', n=rows | length) }}
+    </p>
+  </div>
+</section>
+
+{% if note %}
+  <p class="warning soft">{{ note | safe }}</p>
+{% endif %}
+
+<section class="panel">
+  <h2>{{ t('top.share') }}</h2>
+  {% if not rows %}
+    <p class="empty">{{ t('chart.empty') }}</p>
+  {% else %}
+    {% set top = rows[0]['value'] or 1 %}
+    <ul class="bars wide">
+      {% for row in rows %}
+        <li class="{{ 'muted' if row.get('muted') }}">
+          <a class="bar-label" href="/repo/{{ row.repo['full_name'] }}">
+            {{ row.repo['full_name'].split('/')[1] }}
+            {% if row.repo['fork'] %}<span class="tag">{{ t('tag.fork') }}</span>{% endif %}
+            {% if row.repo['private'] %}<span class="tag">{{ t('tag.private') }}</span>{% endif %}
+          </a>
+          <span class="bar-track">
+            <span class="bar-fill" style="width:{{ (row['value'] / top * 100) | round(1) }}%"></span>
+          </span>
+          <span class="bar-value">
+            {{ num(row['value']) }}
+            {% if row['second'] %}<small>/ {{ num(row['second']) }}</small>{% endif %}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</section>
+
+{% if assets %}
+<section class="panel">
+  <h2>{{ t('top.assets') }}</h2>
+  <div class="table-wrap">
+    <table class="repos">
+      <thead>
+        <tr>
+          <th>{{ t('col.repo') }}</th><th>{{ t('col.release') }}</th>
+          <th>{{ t('col.file') }}</th><th class="n">{{ t('col.downloads') }}</th>
+          <th>{{ t('col.published') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asset in assets %}
+          <tr>
+            <td class="name"><a href="/repo/{{ asset['full_name'] }}">{{ asset['full_name'].split('/')[1] }}</a></td>
+            <td class="mono">{{ asset['tag'] }}</td>
+            <td class="mono">{{ asset['asset'] }}</td>
+            <td class="n">{{ num(asset['downloads']) }}</td>
+            <td class="ago">{{ ago(asset['published']) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

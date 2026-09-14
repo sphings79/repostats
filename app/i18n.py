@@ -157,6 +157,11 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.failed": "mit Fehlern",
         "footer.collecting": "Sammlung läuft …",
 
+        "top.share": "Verteilung",
+        "top.across": "über {n} Repositories",
+        "top.of_raw": "aus {n} roh",
+        "top.assets": "Meistgeladene Dateien",
+
         "issues.title": "Offene Issues",
         "issues.sub": "{n} offen über alle verfolgten Repositories",
         "issues.none": "Nichts offen. Bemerkenswert.",
@@ -326,6 +331,11 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.ok": "succeeded",
         "footer.failed": "with errors",
         "footer.collecting": "collecting …",
+
+        "top.share": "How it splits up",
+        "top.across": "across {n} repositories",
+        "top.of_raw": "out of {n} raw",
+        "top.assets": "Most downloaded files",
 
         "issues.title": "Open issues",
         "issues.sub": "{n} open across the followed repositories",

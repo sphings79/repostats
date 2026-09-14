@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Repo Stats{% endblock %}</title>
-<link rel="stylesheet" href="/static/style.css?v={{ assets }}">
+<link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📊</text></svg>">
 </head>
 <body>
@@ -40,6 +40,6 @@
   {% if running %}<span class="pulse">{{ t('footer.collecting') }}</span>{% endif %}
 </footer>
 
-<script src="/static/app.js?v={{ assets }}"></script>
+<script src="/static/app.js?v={{ asset_version }}"></script>
 </body>
 </html>

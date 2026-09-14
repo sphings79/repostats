@@ -15,15 +15,15 @@
 </section>
 
 <section class="kpis">
-  {{ tile(t('kpi.stars'), num(totals.stars), 'gold', t('hint.stars')) }}
-  {{ tile(t('kpi.forks'), num(totals.forks), 'violet', t('hint.forks')) }}
-  {{ tile(t('kpi.watchers'), num(totals.watchers), 'accent', t('hint.watchers')) }}
+  {{ tile(t('kpi.stars'), num(totals.stars), 'gold', t('hint.stars'), href='/top/stars') }}
+  {{ tile(t('kpi.forks'), num(totals.forks), 'violet', t('hint.forks'), href='/top/forks') }}
+  {{ tile(t('kpi.watchers'), num(totals.watchers), 'accent', t('hint.watchers'), href='/top/watchers') }}
   {{ tile(t('kpi.visitors'), num(totals.views_unique), 'accent', t('hint.visitors'),
-          t('kpi.sub.views', n=num(totals.views))) }}
+          t('kpi.sub.views', n=num(totals.views)), href='/top/views') }}
   {{ tile(t('kpi.cloners'), num(totals.clones_unique), 'accent-2', t('hint.cloners'),
-          t('kpi.sub.clones', n=num(totals.clones))) }}
-  {{ tile(t('kpi.downloads'), num(totals.downloads), 'violet', t('hint.downloads')) }}
-  {{ tile(t('kpi.installs'), num(totals.installs), 'accent-2', t('hint.installs')) }}
+          t('kpi.sub.clones', n=num(totals.clones)), href='/top/clones') }}
+  {{ tile(t('kpi.downloads'), num(totals.downloads), 'violet', t('hint.downloads'), href='/top/downloads') }}
+  {{ tile(t('kpi.installs'), num(totals.installs), 'accent-2', t('hint.installs'), href='/top/installs') }}
   {{ tile(t('kpi.issues'), num(totals.issues), 'gold', t('hint.issues'), href='/issues') }}
 </section>
 
