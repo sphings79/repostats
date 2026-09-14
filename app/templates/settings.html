@@ -18,6 +18,7 @@
   <form method="post" action="/collect"><input type="hidden" name="kind" value="full"><button type="submit">{{ t('settings.collect_full') }}</button></form>
   <form method="post" action="/collect"><input type="hidden" name="kind" value="quick"><button type="submit" class="ghost">{{ t('settings.collect_quick') }}</button></form>
   {% if running %}<span class="pulse">{{ t('settings.running') }}: {{ running }}</span>{% endif %}
+  {% if pending %}<span class="hint">{{ t('settings.queued') }}: {{ pending }}</span>{% endif %}
 </div>
 
 <form method="post" action="/settings">

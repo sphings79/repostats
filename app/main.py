@@ -354,6 +354,7 @@ async def settings(request: Request):
         "repos": db.repos(tracked_only=False),
         "runs": db.runs(),
         "running": collector.running,
+        "pending": collector.pending,
         "login": LOGIN,
         "has_token": bool(TOKEN),
     })
@@ -427,6 +428,7 @@ async def health():
         "last_run": run["started_at"] if run else None,
         "last_run_ok": bool(run["ok"]) if run else None,
         "running": collector.running,
+        "pending": collector.pending,
     })
 
 

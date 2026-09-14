@@ -28,6 +28,7 @@ class Collector:
         self.star_token = star_token
         self._lock = asyncio.Lock()
         self.running: str | None = None
+        self.pending: str | None = None
 
     async def discover(self) -> int:
         """Refresh the repository list without touching any statistics."""
@@ -41,9 +42,34 @@ class Collector:
             await github.aclose()
 
     async def run(self, kind: str = "full") -> dict:
-        if self._lock.locked():
-            return {"skipped": "a collection is already running"}
+        """Collect, or queue the request if a collection is already running.
 
+        The hourly schedule and a button press can easily land at the same
+        time. Dropping the second one silently is the wrong answer — pressing
+        "collect now" and having nothing happen is indistinguishable from a
+        broken button. So the request waits its turn instead, and a full run
+        outranks a quick one, since it covers everything the quick one does.
+        """
+        if self._lock.locked():
+            if kind == "full" or self.pending is None:
+                self.pending = kind
+            _LOGGER.info("A collection is running; %s queued behind it", kind)
+            return {"queued": kind}
+
+        result = None
+        while kind:
+            result, kind = await self._run_once(kind)
+            if kind:
+                _LOGGER.info("Starting the queued %s collection", kind)
+        return result
+
+    async def _run_once(self, kind: str) -> tuple[dict, str | None]:
+        """Run once and hand back whatever queued up meanwhile.
+
+        Taking the queue while still holding the lock matters: released
+        first, a request arriving in that gap would start a second run
+        alongside this one.
+        """
         async with self._lock:
             self.running = kind
             started = self.db.start_run(kind)
@@ -75,7 +101,8 @@ class Collector:
                 self.db.finish_run(started, done, ok, note)
                 self.running = None
 
-            return {"kind": kind, "repos": done, "ok": ok, "note": note}
+            queued, self.pending = self.pending, None
+            return {"kind": kind, "repos": done, "ok": ok, "note": note}, queued
 
     async def _one(self, github: GitHub, row, kind: str, installs: dict) -> None:
         full_name = row["full_name"]
