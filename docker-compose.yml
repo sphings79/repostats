@@ -1,0 +1,24 @@
+services:
+  repostats:
+    build: .
+    image: repostats:latest
+    container_name: repostats
+    restart: unless-stopped
+    environment:
+      # A classic token needs the "repo" scope; a fine-grained one needs
+      # read access to Administration, Contents, Issues, Metadata and Pull
+      # requests. Without it the traffic figures stay empty.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:?set GITHUB_TOKEN in .env}
+      GITHUB_LOGIN: ${GITHUB_LOGIN:?set GITHUB_LOGIN in .env}
+      # Hour of the day (UTC) for the full run that fetches traffic data.
+      FULL_RUN_HOUR: ${FULL_RUN_HOUR:-4}
+      # How often the cheap counters are refreshed, in minutes.
+      QUICK_RUN_MINUTES: ${QUICK_RUN_MINUTES:-60}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - repostats-data:/data
+    ports:
+      - "${PORT:-8377}:8080"
+
+volumes:
+  repostats-data:

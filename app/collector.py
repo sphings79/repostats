@@ -1,0 +1,184 @@
+"""Collects the numbers and writes them away.
+
+Two kinds of run:
+
+* "full"  — once a day. Traffic, referrers, popular paths, release assets,
+            issue splits, contributors, commits. The traffic endpoints return
+            the last fourteen days in one go, so this also repairs gaps left
+            by downtime shorter than two weeks.
+* "quick" — hourly. The cheap counters: stars, forks, watchers, downloads.
+"""
+import asyncio
+import logging
+from collections import Counter
+from datetime import date, datetime, timedelta, timezone
+
+from . import ha_analytics
+from .db import Database
+from .github import GitHub, RateLimited
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class Collector:
+    def __init__(self, db: Database, token: str, login: str):
+        self.db = db
+        self.token = token
+        self.login = login
+        self._lock = asyncio.Lock()
+        self.running: str | None = None
+
+    async def discover(self) -> int:
+        """Refresh the repository list without touching any statistics."""
+        github = GitHub(self.token, self.login)
+        try:
+            repos = await github.repos()
+            for repo in repos:
+                self.db.upsert_repo(_repo_row(repo))
+            return len(repos)
+        finally:
+            await github.aclose()
+
+    async def run(self, kind: str = "full") -> dict:
+        if self._lock.locked():
+            return {"skipped": "a collection is already running"}
+
+        async with self._lock:
+            self.running = kind
+            started = self.db.start_run(kind)
+            github = GitHub(self.token, self.login)
+            done, note, ok = 0, "", True
+            try:
+                for repo in await github.repos():
+                    self.db.upsert_repo(_repo_row(repo))
+
+                tracked = self.db.repos(tracked_only=True)
+                installs = await ha_analytics.fetch() if kind == "full" else {}
+
+                for row in tracked:
+                    try:
+                        await self._one(github, row, kind, installs)
+                        done += 1
+                    except RateLimited as err:
+                        ok, note = False, str(err)
+                        _LOGGER.warning("Stopping early: %s", err)
+                        break
+                    except Exception as err:               # noqa: BLE001
+                        note = f"{row['full_name']}: {err}"
+                        _LOGGER.exception("Failed on %s", row["full_name"])
+            except Exception as err:                       # noqa: BLE001
+                ok, note = False, str(err)
+                _LOGGER.exception("Collection failed")
+            finally:
+                await github.aclose()
+                self.db.finish_run(started, done, ok, note)
+                self.running = None
+
+            return {"kind": kind, "repos": done, "ok": ok, "note": note}
+
+    async def _one(self, github: GitHub, row, kind: str, installs: dict) -> None:
+        full_name = row["full_name"]
+        repo = await github.repo(full_name)
+        if not repo:
+            return
+
+        values = {
+            "stars": repo.get("stargazers_count", 0),
+            "forks": repo.get("forks_count", 0),
+            "watchers": repo.get("subscribers_count", 0),
+            "size_kb": repo.get("size", 0),
+        }
+
+        releases = await github.releases(full_name)
+        assets = []
+        downloads = 0
+        for release in releases:
+            for asset in release.get("assets", []):
+                downloads += asset.get("download_count", 0)
+                assets.append((release.get("tag_name", "?"), asset["name"],
+                               asset.get("download_count", 0),
+                               release.get("published_at")))
+        values["releases"] = len(releases)
+        values["downloads"] = downloads
+        if assets:
+            self.db.write_assets(full_name, assets)
+
+        if kind == "full":
+            values.update(await github.issue_counts(full_name))
+            values["contributors"] = await github.contributors(full_name)
+            values["commits"] = await github.commit_count(full_name)
+
+            for metric, points in (("views", await github.views(full_name)),
+                                   ("clones", await github.clones(full_name))):
+                if points:
+                    self.db.write_daily(full_name, metric,
+                                        [(day, count) for day, count, _u in points])
+                    self.db.write_daily(full_name, f"{metric}_unique",
+                                        [(day, uniques) for day, _c, uniques in points])
+
+            referrers = await github.referrers(full_name)
+            if referrers:
+                self.db.write_referrers(full_name, referrers)
+            paths = await github.paths(full_name)
+            if paths:
+                self.db.write_paths(full_name, paths)
+
+            await self._star_history(github, full_name, repo)
+
+            domain = row["ha_domain"]
+            if domain is None:
+                domain = await ha_analytics.domain_for(github, full_name)
+                self.db.set_ha_domain(full_name, domain)
+            if domain and domain in installs:
+                values["ha_installs"] = installs[domain]
+                self.db.write_daily(full_name, "ha_installs",
+                                    [(date.today().isoformat(), installs[domain])])
+        else:
+            previous = self.db.latest_snapshot(full_name)
+            if previous:
+                for key in ("open_issues", "open_prs", "closed_issues", "merged_prs",
+                            "contributors", "commits", "ha_installs"):
+                    values[key] = previous[key]
+
+        self.db.write_snapshot(full_name, values)
+
+    async def _star_history(self, github: GitHub, full_name: str, repo: dict) -> None:
+        """Rebuild the star curve from the dates GitHub keeps per stargazer."""
+        if repo.get("stargazers_count", 0) == 0:
+            return
+        existing = self.db.series(full_name, "stars_total", days=36500)
+        if existing and len(existing) > 1:
+            latest = existing[-1]["value"]
+            if latest == repo["stargazers_count"]:
+                return
+
+        dates = await github.stargazer_dates(full_name)
+        if not dates:
+            return
+        per_day = Counter(dates)
+        running, points = 0, []
+        start = min(per_day)
+        today = date.today()
+        day = date.fromisoformat(start)
+        while day <= today:
+            running += per_day.get(day.isoformat(), 0)
+            points.append((day.isoformat(), running))
+            day += timedelta(days=1)
+        self.db.write_daily(full_name, "stars_total", points)
+
+
+def _repo_row(repo: dict) -> dict:
+    return {
+        "full_name": repo["full_name"],
+        "name": repo["name"],
+        "description": repo.get("description"),
+        "private": 1 if repo.get("private") else 0,
+        "fork": 1 if repo.get("fork") else 0,
+        "archived": 1 if repo.get("archived") else 0,
+        "language": repo.get("language"),
+        "license": (repo.get("license") or {}).get("spdx_id"),
+        "topics": ",".join(repo.get("topics") or []),
+        "homepage": repo.get("homepage"),
+        "created_at": repo.get("created_at"),
+        "pushed_at": repo.get("pushed_at"),
+    }

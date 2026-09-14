@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Verwaltung · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <h1>Verwaltung</h1>
+    <p class="sub">Auswählen, welche Repositories verfolgt werden. Nur diese werden abgefragt und gespeichert.</p>
+  </div>
+</section>
+
+{% if not has_token %}
+  <p class="warning">Kein <code>GITHUB_TOKEN</code> gesetzt — ohne Token bleiben Aufrufe und Clones leer.</p>
+{% endif %}
+
+<div class="actions">
+  <form method="post" action="/discover"><button type="submit" class="ghost">Repository-Liste aktualisieren</button></form>
+  <form method="post" action="/collect"><input type="hidden" name="kind" value="full"><button type="submit">Jetzt alles sammeln</button></form>
+  <form method="post" action="/collect"><input type="hidden" name="kind" value="quick"><button type="submit" class="ghost">Nur Zähler aktualisieren</button></form>
+  {% if running %}<span class="pulse">läuft gerade: {{ running }}</span>{% endif %}
+</div>
+
+<form method="post" action="/settings">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Repositories ({{ repos | length }})</h2>
+      <div class="filters">
+        <input type="search" id="filter" placeholder="Filtern …" autocomplete="off">
+        <button type="button" class="ghost" data-select="all">Alle</button>
+        <button type="button" class="ghost" data-select="none">Keine</button>
+        <button type="button" class="ghost" data-select="own">Nur eigene</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="repos" id="settings-table">
+        <thead>
+          <tr><th class="check"></th><th>Repository</th><th>Sprache</th><th>Art</th><th>Zuletzt aktiv</th></tr>
+        </thead>
+        <tbody>
+        {% for repo in repos %}
+          <tr data-fork="{{ 1 if repo['fork'] else 0 }}">
+            <td class="check">
+              <input type="checkbox" name="tracked" value="{{ repo['full_name'] }}"
+                     id="r{{ loop.index }}" {% if repo['tracked'] %}checked{% endif %}>
+            </td>
+            <td class="name">
+              <label for="r{{ loop.index }}">{{ repo['full_name'] }}</label>
+              {% if repo['description'] %}<span class="desc">{{ repo['description'] }}</span>{% endif %}
+            </td>
+            <td>{{ repo['language'] or '—' }}</td>
+            <td>
+              {% if repo['private'] %}<span class="tag">privat</span>{% endif %}
+              {% if repo['fork'] %}<span class="tag">Fork</span>{% endif %}
+              {% if repo['archived'] %}<span class="tag warn">archiviert</span>{% endif %}
+              {% if repo['ha_domain'] %}<span class="tag good">HA</span>{% endif %}
+            </td>
+            <td class="ago">{{ repo['pushed_at'] | ago }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="save-bar">
+      <button type="submit">Auswahl speichern</button>
+      <span class="hint"><b id="count">0</b> ausgewählt</span>
+    </div>
+  </section>
+</form>
+
+<section class="panel">
+  <h2>Letzte Läufe</h2>
+  <div class="table-wrap">
+    <table class="repos">
+      <thead><tr><th>Start</th><th>Art</th><th class="n">Repos</th><th>Ergebnis</th><th>Hinweis</th></tr></thead>
+      <tbody>
+      {% for run in runs %}
+        <tr>
+          <td class="ago">{{ run['started_at'] | ago }}</td>
+          <td class="mono">{{ run['kind'] }}</td>
+          <td class="n">{{ run['repos'] or 0 }}</td>
+          <td>{% if run['finished_at'] %}{% if run['ok'] %}<span class="ok">ok</span>{% else %}<span class="bad">Fehler</span>{% endif %}{% else %}<span class="pulse">läuft</span>{% endif %}</td>
+          <td class="note">{{ run['note'] or '' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% endblock %}

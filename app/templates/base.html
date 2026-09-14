@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Repo Stats{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📊</text></svg>">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">
+    <span class="dot"></span>
+    <span>Repo&nbsp;Stats</span>
+  </a>
+  <nav>
+    <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Übersicht</a>
+    <a href="/settings" {% if request.url.path == '/settings' %}class="active"{% endif %}>Verwaltung</a>
+  </nav>
+</header>
+
+<main>{% block content %}{% endblock %}</main>
+
+<footer>
+  {% if last_run is defined and last_run %}
+    Letzter Lauf {{ last_run['started_at'] | ago }}
+    {% if last_run['ok'] %}<span class="ok">erfolgreich</span>{% else %}<span class="bad">mit Fehlern</span>{% endif %}
+    · {{ last_run['repos'] or 0 }} Repos
+  {% endif %}
+  {% if running %}<span class="pulse">Sammlung läuft …</span>{% endif %}
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
