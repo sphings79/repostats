@@ -68,76 +68,90 @@ if (table) {
   });
 }
 
-// Settings: filter, bulk select, live count.
+// Settings: filtering and selecting are two different things, so they are
+// two separate rows of controls. The selection actions act on what the
+// filters left visible.
 const settings = document.getElementById("settings-table");
 if (settings) {
-  const boxes = () => [...settings.querySelectorAll('input[type="checkbox"]')];
+  const rows = () => [...settings.tBodies[0].rows];
+  const boxes = () => rows().map((row) => row.querySelector('input[type="checkbox"]'));
   const counter = document.getElementById("count");
-  const update = () => {
-    if (counter) counter.textContent = boxes().filter((b) => b.checked).length;
+  const counterBottom = document.getElementById("count-bottom");
+  const visible = document.getElementById("visible");
+  const text = document.getElementById("filter");
+  const kind = document.getElementById("f-kind");
+  const state = document.getElementById("f-state");
+  const ha = document.getElementById("f-ha");
+  const language = document.getElementById("f-lang");
+
+  const matches = (row) => {
+    const needle = (text.value || "").toLowerCase();
+    if (needle && !row.textContent.toLowerCase().includes(needle)) return false;
+
+    switch (kind.value) {
+      case "own":      if (row.dataset.fork === "1") return false; break;
+      case "fork":     if (row.dataset.fork !== "1") return false; break;
+      case "private":  if (row.dataset.private !== "1") return false; break;
+      case "public":   if (row.dataset.private === "1") return false; break;
+      case "archived": if (row.dataset.archived !== "1") return false; break;
+      case "active":   if (row.dataset.archived === "1") return false; break;
+    }
+
+    // "followed" means what is ticked right now, not what was stored
+    const ticked = row.querySelector('input[type="checkbox"]').checked;
+    if (state.value === "tracked" && !ticked) return false;
+    if (state.value === "untracked" && ticked) return false;
+
+    if (ha.value === "yes" && row.dataset.ha !== "1") return false;
+    if (ha.value === "no" && row.dataset.ha === "1") return false;
+
+    if (language.value && row.dataset.language !== language.value) return false;
+    return true;
   };
 
-  const filter = document.getElementById("filter");
-  if (filter) {
-    filter.addEventListener("input", () => {
-      const needle = filter.value.toLowerCase();
-      [...settings.tBodies[0].rows].forEach((row) => {
-        row.hidden = needle && !row.textContent.toLowerCase().includes(needle);
-      });
+  const apply = () => {
+    let shown = 0;
+    rows().forEach((row) => {
+      const ok = matches(row);
+      row.hidden = !ok;
+      if (ok) shown += 1;
     });
-  }
+    const all = rows().length;
+    const picked = boxes().filter((box) => box.checked).length;
+    if (visible) {
+      visible.textContent = visible.dataset.template
+        .replace("{shown}", shown).replace("{total}", all);
+    }
+    if (counter) counter.textContent = picked;
+    if (counterBottom) counterBottom.textContent = counterBottom.dataset.template
+      .replace("{n}", picked);
+  };
+
+  [text, kind, state, ha, language].forEach((control) => {
+    if (control) control.addEventListener("input", apply);
+  });
+
+  document.getElementById("f-reset")?.addEventListener("click", () => {
+    text.value = "";
+    [kind, state, ha, language].forEach((control) => { control.value = ""; });
+    apply();
+  });
 
   document.querySelectorAll("[data-select]").forEach((button) => {
     button.addEventListener("click", () => {
       const mode = button.dataset.select;
-      [...settings.tBodies[0].rows].forEach((row) => {
+      rows().forEach((row) => {
         if (row.hidden) return;
         const box = row.querySelector('input[type="checkbox"]');
         if (!box) return;
-        if (mode === "all") box.checked = true;
-        else if (mode === "none") box.checked = false;
-        else if (mode === "own") box.checked = row.dataset.fork !== "1";
+        if (mode === "check") box.checked = true;
+        else if (mode === "uncheck") box.checked = false;
+        else if (mode === "invert") box.checked = !box.checked;
       });
-      update();
+      apply();
     });
   });
 
-  settings.addEventListener("change", update);
-  update();
+  settings.addEventListener("change", apply);
+  apply();
 }
-
-// The "i" on a KPI tile opens its note; a click elsewhere closes it again.
-document.querySelectorAll(".kpi .info").forEach((button) => {
-  const tile = button.closest(".kpi");
-  const box = tile.querySelector(".hint-box");
-
-  button.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const open = button.getAttribute("aria-expanded") === "true";
-
-    document.querySelectorAll(".kpi .info[aria-expanded='true']").forEach((other) => {
-      other.setAttribute("aria-expanded", "false");
-      other.closest(".kpi").classList.remove("open");
-      other.closest(".kpi").querySelector(".hint-box").hidden = true;
-    });
-
-    if (!open) {
-      button.setAttribute("aria-expanded", "true");
-      tile.classList.add("open");
-      box.hidden = false;
-    }
-  });
-});
-
-document.addEventListener("click", () => {
-  document.querySelectorAll(".kpi .info[aria-expanded='true']").forEach((button) => {
-    button.setAttribute("aria-expanded", "false");
-    button.closest(".kpi").classList.remove("open");
-    button.closest(".kpi").querySelector(".hint-box").hidden = true;
-  });
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") document.body.click();
-});

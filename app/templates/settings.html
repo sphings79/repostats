@@ -24,13 +24,60 @@
   <section class="panel">
     <div class="panel-head">
       <h2>{{ t('overview.repos') }} ({{ repos | length }})</h2>
-      <div class="filters">
-        <input type="search" id="filter" placeholder="{{ t('settings.filter') }}" autocomplete="off">
-        <button type="button" class="ghost" data-select="all">{{ t('settings.all') }}</button>
-        <button type="button" class="ghost" data-select="none">{{ t('settings.none') }}</button>
-        <button type="button" class="ghost" data-select="own">{{ t('settings.own') }}</button>
-      </div>
+      <span class="hint" id="visible" data-template="{{ t('settings.visible', shown='{shown}', total='{total}') }}"></span>
     </div>
+
+    <div class="filterbar">
+      <span class="filterbar-label">{{ t('settings.filters') }}</span>
+      <input type="search" id="filter" placeholder="{{ t('settings.filter') }}" autocomplete="off">
+      <label class="pick">
+        <span>{{ t('filter.kind') }}</span>
+        <select id="f-kind">
+          <option value="">{{ t('filter.kind.any') }}</option>
+          <option value="own">{{ t('filter.kind.own') }}</option>
+          <option value="fork">{{ t('filter.kind.fork') }}</option>
+          <option value="private">{{ t('filter.kind.private') }}</option>
+          <option value="public">{{ t('filter.kind.public') }}</option>
+          <option value="archived">{{ t('filter.kind.archived') }}</option>
+          <option value="active">{{ t('filter.kind.active') }}</option>
+        </select>
+      </label>
+      <label class="pick">
+        <span>{{ t('filter.state') }}</span>
+        <select id="f-state">
+          <option value="">{{ t('filter.state.any') }}</option>
+          <option value="tracked">{{ t('filter.state.tracked') }}</option>
+          <option value="untracked">{{ t('filter.state.untracked') }}</option>
+        </select>
+      </label>
+      <label class="pick">
+        <span>{{ t('filter.ha') }}</span>
+        <select id="f-ha">
+          <option value="">{{ t('filter.ha.any') }}</option>
+          <option value="yes">{{ t('filter.ha.yes') }}</option>
+          <option value="no">{{ t('filter.ha.no') }}</option>
+        </select>
+      </label>
+      <label class="pick">
+        <span>{{ t('filter.lang') }}</span>
+        <select id="f-lang">
+          <option value="">{{ t('filter.lang.any') }}</option>
+          {% for language in repos | map(attribute='language') | select | unique | sort %}
+            <option value="{{ language }}">{{ language }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="button" class="ghost" id="f-reset">{{ t('settings.reset') }}</button>
+    </div>
+
+    <div class="selectbar">
+      <span class="filterbar-label">{{ t('settings.selection') }}</span>
+      <button type="button" class="ghost" data-select="check">{{ t('settings.check_visible') }}</button>
+      <button type="button" class="ghost" data-select="uncheck">{{ t('settings.uncheck_visible') }}</button>
+      <button type="button" class="ghost" data-select="invert">{{ t('settings.invert') }}</button>
+      <span class="hint"><b id="count">0</b> {{ t('settings.selected') }}</span>
+    </div>
+
     <div class="table-wrap">
       <table class="repos" id="settings-table">
         <thead>
@@ -38,7 +85,12 @@
         </thead>
         <tbody>
         {% for repo in repos %}
-          <tr data-fork="{{ 1 if repo['fork'] else 0 }}">
+          <tr data-fork="{{ 1 if repo['fork'] else 0 }}"
+              data-private="{{ 1 if repo['private'] else 0 }}"
+              data-archived="{{ 1 if repo['archived'] else 0 }}"
+              data-ha="{{ 1 if repo['ha_domain'] else 0 }}"
+              data-language="{{ repo['language'] or '' }}"
+              data-tracked="{{ 1 if repo['tracked'] else 0 }}">
             <td class="check">
               <input type="checkbox" name="tracked" value="{{ repo['full_name'] }}"
                      id="r{{ loop.index }}" {% if repo['tracked'] %}checked{% endif %}>
@@ -62,7 +114,7 @@
     </div>
     <div class="save-bar">
       <button type="submit">{{ t('settings.save') }}</button>
-      <span class="hint"><b id="count">0</b> {{ t('settings.selected') }}</span>
+      <span class="hint" id="count-bottom" data-template="{n} {{ t('settings.selected') }}"></span>
     </div>
   </section>
 </form>

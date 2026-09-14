@@ -320,3 +320,30 @@ td.name label { cursor: pointer; font-weight: 600; }
 .issue-meta .tag { margin-left: 0; }
 h2 .plain { color: var(--text); text-decoration: none; }
 h2 .plain:hover { color: var(--accent); }
+
+/* settings: filters above, selection actions below, clearly apart */
+.filterbar, .selectbar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px;
+  background: rgba(255, 255, 255, .018);
+}
+.filterbar { margin-bottom: 8px; }
+.selectbar { margin-bottom: 16px; background: transparent; border-style: dashed; }
+.filterbar-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+  color: var(--dim); font-weight: 600; margin-right: 2px;
+}
+.filterbar input[type="search"] { flex: 1 1 220px; min-width: 180px; }
+.pick { display: inline-flex; align-items: center; gap: 6px; }
+.pick > span { color: var(--muted); font-size: 12px; }
+.pick select {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 26px 7px 10px; color: var(--text); font: 13px var(--sans);
+  appearance: none; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%),
+                    linear-gradient(135deg, var(--dim) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 52%, calc(100% - 9px) 52%;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+}
+.pick select:focus { outline: none; border-color: var(--accent); }
+.selectbar .hint { margin-left: auto; }
