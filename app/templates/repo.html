@@ -25,48 +25,60 @@
 </section>
 
 <section class="kpis">
-  {{ tile(t('kpi.stars'), num(snap['stars'] if snap else 0), 'gold', t('hint.stars')) }}
-  {{ tile(t('kpi.forks'), num(snap['forks'] if snap else 0), 'violet', t('hint.forks')) }}
-  {{ tile(t('kpi.watchers'), num(snap['watchers'] if snap else 0), 'accent', t('hint.watchers')) }}
+  {% set gh = 'https://github.com/' ~ repo['full_name'] %}
+  {{ tile(t('kpi.stars'), num(snap['stars'] if snap else 0), 'gold', t('hint.stars'),
+          href='#stars') }}
+  {{ tile(t('kpi.forks'), num(snap['forks'] if snap else 0), 'violet', t('hint.forks'),
+          href=gh ~ '/forks', external=true) }}
+  {{ tile(t('kpi.watchers'), num(snap['watchers'] if snap else 0), 'accent', t('hint.watchers'),
+          href=gh ~ '/watchers', external=true) }}
   {{ tile(t('kpi.visitors'), num(uniques14), 'accent', t('hint.visitors'),
-          t('kpi.sub.views', n=num(views14))) }}
+          t('kpi.sub.views', n=num(views14)), href='#views') }}
   {{ tile(t('kpi.cloners'), num(clone_uniques14), 'accent-2', t('hint.cloners'),
-          t('kpi.sub.clones', n=num(clones14))) }}
-  {{ tile(t('kpi.downloads'), num(snap['downloads'] if snap else 0), 'violet', t('hint.downloads')) }}
-  {{ tile(t('kpi.issues'), num(snap['open_issues'] if snap else 0), 'gold', t('hint.issues')) }}
-  {{ tile(t('kpi.prs'), num(snap['open_prs'] if snap else 0), 'gold', t('hint.prs')) }}
-  {{ tile(t('kpi.commits'), num(snap['commits'] if snap else 0), 'accent', t('hint.commits')) }}
-  {{ tile(t('kpi.contributors'), num(snap['contributors'] if snap else 0), 'accent', t('hint.contributors')) }}
-  {{ tile(t('kpi.releases'), num(snap['releases'] if snap else 0), 'violet', t('hint.releases')) }}
+          t('kpi.sub.clones', n=num(clones14)), href='#clones') }}
+  {{ tile(t('kpi.downloads'), num(snap['downloads'] if snap else 0), 'violet', t('hint.downloads'),
+          href='#assets' if assets else gh ~ '/releases', external=not assets) }}
+  {{ tile(t('kpi.issues'), num(snap['open_issues'] if snap else 0), 'gold', t('hint.issues'),
+          href='/issues?repo=' ~ repo['full_name']) }}
+  {{ tile(t('kpi.prs'), num(snap['open_prs'] if snap else 0), 'gold', t('hint.prs'),
+          href=gh ~ '/pulls', external=true) }}
+  {{ tile(t('kpi.commits'), num(snap['commits'] if snap else 0), 'accent', t('hint.commits'),
+          href=gh ~ '/commits', external=true) }}
+  {{ tile(t('kpi.contributors'), num(snap['contributors'] if snap else 0), 'accent',
+          t('hint.contributors'), href=gh ~ '/graphs/contributors', external=true) }}
+  {{ tile(t('kpi.releases'), num(snap['releases'] if snap else 0), 'violet', t('hint.releases'),
+          href=gh ~ '/releases', external=true) }}
   {% if snap and snap['ci_runs'] %}
-    {{ tile(t('kpi.ci'), snap['ci_rate'] ~ ' %', 'accent-2', t('hint.ci')) }}
-    {{ tile(t('kpi.ci_runs'), num(snap['ci_runs']), 'accent', t('hint.ci_runs')) }}
-    {{ tile(t('kpi.ci_time'), duration(snap['ci_seconds']), 'violet', t('hint.ci_time')) }}
+    {{ tile(t('kpi.ci'), snap['ci_rate'] ~ ' %', 'accent-2', t('hint.ci'), href='#ci') }}
+    {{ tile(t('kpi.ci_runs'), num(snap['ci_runs']), 'accent', t('hint.ci_runs'),
+            href=gh ~ '/actions', external=true) }}
+    {{ tile(t('kpi.ci_time'), duration(snap['ci_seconds']), 'violet', t('hint.ci_time'),
+            href=gh ~ '/actions', external=true) }}
   {% endif %}
   {% if snap and snap['ha_installs'] %}
     {{ tile(t('kpi.installs.long'), num(snap['ha_installs']), 'accent-2',
             t('hint.installs.fork') if repo['fork'] else t('hint.installs'),
-            t('kpi.installs.note')) }}
+            t('kpi.installs.note'), href='#installs' if installs else '/top/installs') }}
   {% endif %}
 </section>
 
-<section class="panel">
+<section class="panel" id="views">
   <h2>{{ t('repo.views') }}</h2>
   {{ traffic | safe }}
 </section>
 
-<section class="panel">
+<section class="panel" id="clones">
   <h2>{{ t('repo.clones') }}</h2>
   {{ clones | safe }}
 </section>
 
 <div class="split">
-  <section class="panel">
+  <section class="panel" id="stars">
     <h2>{{ t('repo.stars') }}</h2>
     {{ stars | safe }}
   </section>
   {% if installs %}
-  <section class="panel">
+  <section class="panel" id="installs">
     <h2>{{ t('repo.installs') }}</h2>
     {{ installs | safe }}
   </section>
@@ -74,7 +86,7 @@
 </div>
 
 {% if ci %}
-<section class="panel">
+<section class="panel" id="ci">
   <h2>{{ t('repo.ci') }}</h2>
   {{ ci | safe }}
 </section>
@@ -92,7 +104,7 @@
 </div>
 
 {% if assets %}
-<section class="panel">
+<section class="panel" id="assets">
   <h2>{{ t('repo.assets') }}</h2>
   <div class="table-wrap">
     <table class="repos">
