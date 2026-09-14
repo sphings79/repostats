@@ -38,6 +38,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "kpi.visitors": "Besucher (14 T)",
         "kpi.cloners": "Klonende (14 T)",
         "kpi.sub.views": "{n} Aufrufe",
+        "kpi.sub.domain": "{n} auf der Domain",
         "kpi.sub.clones": "{n} Clones",
 
         "hint.stars": "Sterne über alle verfolgten Repositories.",
@@ -223,6 +224,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "kpi.visitors": "Visitors (14 d)",
         "kpi.cloners": "Cloners (14 d)",
         "kpi.sub.views": "{n} views",
+        "kpi.sub.domain": "{n} on the domain",
         "kpi.sub.clones": "{n} clones",
 
         "hint.stars": "Stars across every followed repository.",

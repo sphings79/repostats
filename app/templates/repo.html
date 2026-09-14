@@ -69,10 +69,13 @@
     {{ tile(t('kpi.ci_time'), duration(snap['ci_seconds']), 'violet', t('hint.ci_time'),
             href=gh ~ '/actions', external=true) }}
   {% endif %}
-  {% if snap and snap['ha_installs'] %}
+  {% if snap and (snap['ha_installs'] or snap['ha_installs_total']) %}
     {{ tile(t('kpi.installs.long'), num(snap['ha_installs']), 'accent-2',
-            t('hint.installs.fork') if repo['fork'] else t('hint.installs'),
-            t('kpi.installs.note'), href='#installs' if installs else '/top/installs') }}
+            t('hint.installs.fork') if snap['ha_installs_total'] and snap['ha_installs_total'] != snap['ha_installs'] else t('hint.installs'),
+            t('kpi.sub.domain', n=num(snap['ha_installs_total']))
+              if snap['ha_installs_total'] and snap['ha_installs_total'] != snap['ha_installs']
+              else t('kpi.installs.note'),
+            href='#installs' if installs else '/top/installs') }}
   {% endif %}
 </section>
 
@@ -91,10 +94,10 @@
     <h2>{{ t('repo.stars') }}</h2>
     {{ stars | safe }}
   </section>
-  {% if installs %}
+  {% if installs or versions %}
   <section class="panel" id="installs">
     <h2>{{ t('repo.installs') }}</h2>
-    {{ installs | safe }}
+    {% if installs %}{{ installs | safe }}{% endif %}
     {% if versions %}
       {% set other = versions | rejectattr('mine') | list %}
       {% if other %}
