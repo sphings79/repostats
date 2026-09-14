@@ -14,8 +14,13 @@ _LOGGER = logging.getLogger(__name__)
 URL = "https://analytics.home-assistant.io/custom_integrations.json"
 
 
-async def fetch(timeout: float = 30.0) -> dict[str, int]:
-    """Map integration domain -> number of reporting installations."""
+async def fetch(timeout: float = 30.0) -> dict[str, dict]:
+    """Map integration domain -> {"total": n, "versions": {version: n}}.
+
+    The versions matter: a domain is shared by everyone shipping that
+    integration, so a project continuing somebody else's work sees their
+    users in the total. Only the versions it released itself are its own.
+    """
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.get(URL)
@@ -25,8 +30,9 @@ async def fetch(timeout: float = 30.0) -> dict[str, int]:
         _LOGGER.warning("Could not read Home Assistant analytics: %s", err)
         return {}
 
-    return {domain: entry.get("total", 0) for domain, entry in data.items()
-            if isinstance(entry, dict)}
+    return {domain: {"total": entry.get("total", 0),
+                     "versions": entry.get("versions", {}) or {}}
+            for domain, entry in data.items() if isinstance(entry, dict)}
 
 
 async def domain_for(github, full_name: str) -> str | None:

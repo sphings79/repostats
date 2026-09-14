@@ -223,6 +223,17 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
              "colour": "var(--gold)"},
         ], days=days, lang=lang)
 
+    # Every version of ours, and only the largest few of the others: a busy
+    # domain reports dozens, and the point is the comparison, not the list.
+    versions = []
+    if repo["ha_domain"]:
+        rows = db.ha_versions(full_name)
+        mine = [r for r in rows if r["mine"]]
+        others = [r for r in rows if not r["mine"]]
+        versions = mine + others[:5]
+        hidden_versions = max(len(others) - 5, 0)
+    else:
+        hidden_versions = 0
     installs = None
     if repo["ha_domain"]:
         installs = charts.area_chart([
@@ -233,7 +244,7 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
     return _render(request, "repo.html", {
         "repo": repo, "snap": snap, "days": days,
         "traffic": traffic, "clones": clones, "stars": stars, "installs": installs,
-        "ci": ci,
+        "ci": ci, "versions": versions, "hidden_versions": hidden_versions,
         "referrers": charts.bars(db.referrers(full_name), "source", "views", lang=lang),
         "paths": charts.bars(db.paths(full_name), "path", "views", lang=lang),
         "assets": db.assets(full_name),
@@ -420,17 +431,17 @@ async def health():
 
 
 def _install_total(rows) -> int:
-    """Installations, counted once per integration and without forks.
+    """Installations, counted once per integration.
 
-    Two repositories can ship the same integration domain — a rename, a split
-    into a suite — and Home Assistant reports one number for the domain, not
-    per repository. And a fork carries the domain of the project it came from,
-    so its number belongs to that project, not here.
+    Home Assistant reports per domain, not per repository, and a domain is
+    shared by everyone shipping that integration. What lands in the snapshot
+    is therefore already narrowed to the versions released here; this only
+    makes sure a domain shipped from two repositories is not counted twice.
     """
     seen: dict[str, int] = {}
     for row in rows:
         snap, repo = row["snap"], row["repo"]
-        if not snap or not snap["ha_installs"] or repo["fork"]:
+        if not snap or not snap["ha_installs"]:
             continue
         domain = repo["ha_domain"] or repo["full_name"]
         seen[domain] = max(seen.get(domain, 0), snap["ha_installs"])

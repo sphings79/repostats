@@ -103,6 +103,14 @@ CREATE TABLE IF NOT EXISTS issue (
     PRIMARY KEY (full_name, number)
 );
 
+CREATE TABLE IF NOT EXISTS ha_version (
+    full_name TEXT NOT NULL,
+    version   TEXT NOT NULL,
+    installs  INTEGER NOT NULL,
+    mine      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (full_name, version)
+);
+
 CREATE TABLE IF NOT EXISTS run (
     started_at  TEXT PRIMARY KEY,
     finished_at TEXT,
@@ -139,6 +147,7 @@ class Database:
             "snapshot": {
                 "ci_runs": "INTEGER", "ci_success": "INTEGER", "ci_rate": "INTEGER",
                 "ci_seconds": "INTEGER", "ci_last": "TEXT",
+                "ha_installs_total": "INTEGER",
             },
         }
         with self.connect() as con:
@@ -217,6 +226,7 @@ class Database:
         cols = ["stars", "forks", "watchers", "open_issues", "open_prs",
                 "closed_issues", "merged_prs", "size_kb", "contributors",
                 "commits", "releases", "downloads", "ha_installs",
+                "ha_installs_total",
                 "ci_runs", "ci_success", "ci_rate", "ci_seconds", "ci_last"]
         row = {c: values.get(c) for c in cols}
         row["full_name"] = full_name
@@ -267,6 +277,21 @@ class Database:
                    VALUES (?, ?, ?, ?, ?)""",
                 [(full_name, *r) for r in rows],
             )
+
+    def write_ha_versions(self, full_name: str, rows: list[tuple[str, int, bool]]) -> None:
+        with self.connect() as con:
+            con.execute("DELETE FROM ha_version WHERE full_name = ?", (full_name,))
+            con.executemany(
+                """INSERT OR REPLACE INTO ha_version (full_name, version, installs, mine)
+                   VALUES (?, ?, ?, ?)""",
+                [(full_name, v, n, 1 if mine else 0) for v, n, mine in rows])
+
+    def ha_versions(self, full_name: str) -> list[sqlite3.Row]:
+        with self.connect() as con:
+            return con.execute(
+                """SELECT version, installs, mine FROM ha_version
+                   WHERE full_name = ? ORDER BY mine DESC, installs DESC""",
+                (full_name,)).fetchall()
 
     def write_issues(self, full_name: str, rows: list[dict]) -> None:
         """Replace what is stored for a repository; closed ones simply vanish."""

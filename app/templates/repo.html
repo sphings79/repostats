@@ -95,6 +95,25 @@
   <section class="panel" id="installs">
     <h2>{{ t('repo.installs') }}</h2>
     {{ installs | safe }}
+    {% if versions %}
+      {% set other = versions | rejectattr('mine') | list %}
+      {% if other %}
+        <p class="empty">{{ t('installs.shared',
+             total=num(snap['ha_installs_total'] or 0), mine=num(snap['ha_installs'] or 0)) }}</p>
+      {% endif %}
+      <ul class="versions">
+        {% for row in versions %}
+          <li class="{{ 'mine' if row['mine'] else 'other' }}">
+            <span class="mono">{{ row['version'] }}</span>
+            <span class="tag {{ 'good' if row['mine'] }}">{{ t('installs.mine') if row['mine'] else t('installs.other') }}</span>
+            <span class="n">{{ num(row['installs']) }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+      {% if hidden_versions %}
+        <p class="empty">{{ t('installs.more', n=hidden_versions) }}</p>
+      {% endif %}
+    {% endif %}
   </section>
   {% endif %}
 </div>

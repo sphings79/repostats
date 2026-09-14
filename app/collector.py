@@ -91,6 +91,7 @@ class Collector:
         }
 
         releases = await github.releases(full_name)
+        tags = {_normalise(r.get("tag_name", "")) for r in releases}
         assets = []
         downloads = 0
         for release in releases:
@@ -138,18 +139,44 @@ class Collector:
                 domain = await ha_analytics.domain_for(github, full_name)
                 self.db.set_ha_domain(full_name, domain)
             if domain and domain in installs:
-                values["ha_installs"] = installs[domain]
-                self.db.write_daily(full_name, "ha_installs",
-                                    [(date.today().isoformat(), installs[domain])])
+                self._installs(full_name, installs[domain], tags, values)
         else:
             previous = self.db.latest_snapshot(full_name)
             if previous:
                 for key in ("open_issues", "open_prs", "closed_issues", "merged_prs",
                             "contributors", "commits", "ha_installs",
+                            "ha_installs_total",
                             "ci_runs", "ci_success", "ci_rate", "ci_seconds", "ci_last"):
                     values[key] = previous[key]
 
         self.db.write_snapshot(full_name, values)
+
+    def _installs(self, full_name: str, entry: dict, tags: set, values: dict) -> None:
+        """Split the reported installations into ours and everybody else's.
+
+        An integration domain belongs to whoever ships it, not to a
+        repository. A project continuing somebody else's work — or sharing a
+        domain with a predecessor — sees their users in the total. The
+        versions tell them apart: only the ones released here are ours.
+        """
+        versions = entry.get("versions", {})
+        total = entry.get("total", 0)
+
+        rows = [(version, count, _normalise(version) in tags)
+                for version, count in versions.items()]
+        mine = sum(count for _v, count, is_mine in rows if is_mine)
+
+        # No release of ours shows up: either the versions cannot be matched
+        # or nobody runs this build yet. Reporting the whole domain would be
+        # claiming other people's users, so it is kept separate.
+        values["ha_installs"] = mine
+        values["ha_installs_total"] = total
+
+        if rows:
+            self.db.write_ha_versions(full_name, rows)
+        if mine:
+            self.db.write_daily(full_name, "ha_installs",
+                                [(date.today().isoformat(), mine)])
 
     async def _ci(self, github: GitHub, full_name: str) -> dict:
         """Success rate and duration of the workflow runs.
@@ -214,6 +241,15 @@ class Collector:
             points.append((day.isoformat(), running))
             day += timedelta(days=1)
         self.db.write_daily(full_name, "stars_total", points)
+
+
+def _normalise(version: str) -> str:
+    """Compare a release tag with a version string from the analytics.
+
+    Tags carry a leading v often enough that ignoring it is worth more than
+    being strict: v2.1.1 and 2.1.1 are the same release.
+    """
+    return (version or "").strip().lstrip("vV")
 
 
 def _repo_row(repo: dict) -> dict:

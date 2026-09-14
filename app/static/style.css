@@ -420,3 +420,16 @@ h2 .plain:hover { color: var(--accent); }
 .head-actions { display: flex; gap: 8px; align-items: center; }
 .head-actions form { margin: 0; }
 button.ghost.danger:hover { color: #ff8585; border-color: rgba(255, 107, 107, .5); }
+
+/* installations, split by version */
+.versions { list-style: none; margin: 14px 0 0; padding: 0; }
+.versions li {
+  display: grid; grid-template-columns: minmax(90px, 140px) auto 1fr;
+  gap: 10px; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid rgba(40, 57, 74, .5);
+  font-size: 13px;
+}
+.versions li:last-child { border-bottom: none; }
+.versions li.other { opacity: .5; }
+.versions .n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.versions .tag { margin-left: 0; justify-self: start; }
