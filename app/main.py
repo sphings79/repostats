@@ -122,6 +122,8 @@ async def overview(request: Request, days: int = 30):
             "snap": snap,
             "views": _sum(db.series(repo["full_name"], "views", 14)),
             "clones": _sum(db.series(repo["full_name"], "clones", 14)),
+            "views_unique": _sum(db.series(repo["full_name"], "views_unique", 14)),
+            "clones_unique": _sum(db.series(repo["full_name"], "clones_unique", 14)),
             "spark": charts.sparkline(db.series(repo["full_name"], "views", 30), days=30),
         })
     rows.sort(key=lambda r: (r["snap"]["stars"] if r["snap"] else 0,
@@ -137,6 +139,8 @@ async def overview(request: Request, days: int = 30):
         "installs": sum((r["snap"]["ha_installs"] or 0) for r in rows if r["snap"]),
         "views": sum(r["views"] for r in rows),
         "clones": sum(r["clones"] for r in rows),
+        "views_unique": sum(r["views_unique"] for r in rows),
+        "clones_unique": sum(r["clones_unique"] for r in rows),
     }
 
     traffic = charts.area_chart([
@@ -211,6 +215,7 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         "views14": _sum(db.series(full_name, "views", 14)),
         "clones14": _sum(db.series(full_name, "clones", 14)),
         "uniques14": _sum(db.series(full_name, "views_unique", 14)),
+        "clone_uniques14": _sum(db.series(full_name, "clones_unique", 14)),
     })
 
 

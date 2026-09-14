@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "kpi.html" import tile %}
 {% block title %}{{ repo['name'] }} · Repo Stats{% endblock %}
 {% block content %}
 
@@ -24,39 +25,27 @@
 </section>
 
 <section class="kpis">
-  {% set tiles = [
-    ('kpi.stars', snap['stars'] if snap else 0, 'gold'),
-    ('kpi.forks', snap['forks'] if snap else 0, 'violet'),
-    ('kpi.watchers', snap['watchers'] if snap else 0, 'accent'),
-    ('kpi.views14', views14, 'accent'),
-    ('kpi.uniques', uniques14, 'accent-2'),
-    ('kpi.clones14', clones14, 'accent-2'),
-    ('kpi.downloads', snap['downloads'] if snap else 0, 'violet'),
-    ('kpi.issues', snap['open_issues'] if snap else 0, 'gold'),
-    ('kpi.prs', snap['open_prs'] if snap else 0, 'gold'),
-    ('kpi.commits', snap['commits'] if snap else 0, 'accent'),
-    ('kpi.contributors', snap['contributors'] if snap else 0, 'accent'),
-    ('kpi.releases', snap['releases'] if snap else 0, 'violet'),
-  ] %}
+  {{ tile(t('kpi.stars'), num(snap['stars'] if snap else 0), 'gold', t('hint.stars')) }}
+  {{ tile(t('kpi.forks'), num(snap['forks'] if snap else 0), 'violet', t('hint.forks')) }}
+  {{ tile(t('kpi.watchers'), num(snap['watchers'] if snap else 0), 'accent', t('hint.watchers')) }}
+  {{ tile(t('kpi.visitors'), num(uniques14), 'accent', t('hint.visitors'),
+          t('kpi.sub.views', n=num(views14))) }}
+  {{ tile(t('kpi.cloners'), num(clone_uniques14), 'accent-2', t('hint.cloners'),
+          t('kpi.sub.clones', n=num(clones14))) }}
+  {{ tile(t('kpi.downloads'), num(snap['downloads'] if snap else 0), 'violet', t('hint.downloads')) }}
+  {{ tile(t('kpi.issues'), num(snap['open_issues'] if snap else 0), 'gold', t('hint.issues')) }}
+  {{ tile(t('kpi.prs'), num(snap['open_prs'] if snap else 0), 'gold', t('hint.prs')) }}
+  {{ tile(t('kpi.commits'), num(snap['commits'] if snap else 0), 'accent', t('hint.commits')) }}
+  {{ tile(t('kpi.contributors'), num(snap['contributors'] if snap else 0), 'accent', t('hint.contributors')) }}
+  {{ tile(t('kpi.releases'), num(snap['releases'] if snap else 0), 'violet', t('hint.releases')) }}
   {% if snap and snap['ci_runs'] %}
-    {% set tiles = tiles + [
-      ('kpi.ci', (snap['ci_rate'] | string) + ' %', 'accent-2'),
-      ('kpi.ci_runs', snap['ci_runs'], 'accent'),
-      ('kpi.ci_time', duration(snap['ci_seconds']), 'violet'),
-    ] %}
+    {{ tile(t('kpi.ci'), snap['ci_rate'] ~ ' %', 'accent-2', t('hint.ci')) }}
+    {{ tile(t('kpi.ci_runs'), num(snap['ci_runs']), 'accent', t('hint.ci_runs')) }}
+    {{ tile(t('kpi.ci_time'), duration(snap['ci_seconds']), 'violet', t('hint.ci_time')) }}
   {% endif %}
-  {% for key, value, tone in tiles %}
-    <article class="kpi {{ tone }}">
-      <span class="kpi-label">{{ t(key) }}</span>
-      <span class="kpi-value">{{ value if value is string else num(value) }}</span>
-    </article>
-  {% endfor %}
   {% if snap and snap['ha_installs'] %}
-    <article class="kpi accent-2 wide">
-      <span class="kpi-label">{{ t('kpi.installs.long') }}</span>
-      <span class="kpi-value">{{ num(snap['ha_installs']) }}</span>
-      <span class="kpi-note">{{ t('kpi.installs.note') }}</span>
-    </article>
+    {{ tile(t('kpi.installs.long'), num(snap['ha_installs']), 'accent-2',
+            t('hint.installs'), t('kpi.installs.note')) }}
   {% endif %}
 </section>
 

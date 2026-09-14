@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "kpi.html" import tile %}
 {% block content %}
 
 <section class="hero">
@@ -14,22 +15,16 @@
 </section>
 
 <section class="kpis">
-  {% set tiles = [
-    ('kpi.stars', totals.stars, 'gold'),
-    ('kpi.forks', totals.forks, 'violet'),
-    ('kpi.watchers', totals.watchers, 'accent'),
-    ('kpi.views14', totals.views, 'accent'),
-    ('kpi.clones14', totals.clones, 'accent-2'),
-    ('kpi.downloads', totals.downloads, 'violet'),
-    ('kpi.installs', totals.installs, 'accent-2'),
-    ('kpi.issues', totals.issues, 'gold'),
-  ] %}
-  {% for key, value, tone in tiles %}
-    <article class="kpi {{ tone }}">
-      <span class="kpi-label">{{ t(key) }}</span>
-      <span class="kpi-value">{{ num(value) }}</span>
-    </article>
-  {% endfor %}
+  {{ tile(t('kpi.stars'), num(totals.stars), 'gold', t('hint.stars')) }}
+  {{ tile(t('kpi.forks'), num(totals.forks), 'violet', t('hint.forks')) }}
+  {{ tile(t('kpi.watchers'), num(totals.watchers), 'accent', t('hint.watchers')) }}
+  {{ tile(t('kpi.visitors'), num(totals.views_unique), 'accent', t('hint.visitors'),
+          t('kpi.sub.views', n=num(totals.views))) }}
+  {{ tile(t('kpi.cloners'), num(totals.clones_unique), 'accent-2', t('hint.cloners'),
+          t('kpi.sub.clones', n=num(totals.clones))) }}
+  {{ tile(t('kpi.downloads'), num(totals.downloads), 'violet', t('hint.downloads')) }}
+  {{ tile(t('kpi.installs'), num(totals.installs), 'accent-2', t('hint.installs')) }}
+  {{ tile(t('kpi.issues'), num(totals.issues), 'gold', t('hint.issues')) }}
 </section>
 
 <section class="panel">
