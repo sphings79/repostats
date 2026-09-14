@@ -133,7 +133,11 @@ if (settings) {
 
   document.getElementById("f-reset")?.addEventListener("click", () => {
     text.value = "";
-    [kind, state, ha, language].forEach((control) => { control.value = ""; });
+    [kind, state, ha, language].forEach((control) => {
+      control.value = "";
+      // the widget in front of it listens for this
+      control.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     apply();
   });
 
@@ -155,3 +159,85 @@ if (settings) {
   settings.addEventListener("change", apply);
   apply();
 }
+
+// Native dropdowns cannot be styled once they open — the browser draws that
+// list itself. So each <select> keeps working as the source of truth and is
+// hidden behind a small widget that looks like the rest of the page.
+document.querySelectorAll(".pick select").forEach((select) => {
+  const wrap = document.createElement("div");
+  wrap.className = "combo";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "combo-button";
+  button.setAttribute("aria-haspopup", "listbox");
+  button.setAttribute("aria-expanded", "false");
+
+  const list = document.createElement("ul");
+  list.className = "combo-list";
+  list.setAttribute("role", "listbox");
+  list.hidden = true;
+
+  const label = () => {
+    button.textContent = select.options[select.selectedIndex]?.textContent ?? "";
+    button.classList.toggle("set", select.selectedIndex > 0);
+  };
+
+  [...select.options].forEach((option, index) => {
+    const item = document.createElement("li");
+    item.textContent = option.textContent;
+    item.setAttribute("role", "option");
+    item.tabIndex = -1;
+    item.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      select.selectedIndex = index;
+      list.hidden = true;
+      wrap.classList.remove("open");
+      button.setAttribute("aria-expanded", "false");
+      label();
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    list.appendChild(item);
+  });
+
+  const mark = () => {
+    [...list.children].forEach((item, index) => {
+      item.classList.toggle("on", index === select.selectedIndex);
+    });
+  };
+
+  const close = () => {
+    list.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    wrap.classList.remove("open");
+  };
+
+  const open = () => {
+    document.querySelectorAll(".combo.open").forEach((other) => {
+      other.classList.remove("open");
+      other.querySelector(".combo-list").hidden = true;
+      other.querySelector(".combo-button").setAttribute("aria-expanded", "false");
+    });
+    mark();
+    list.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    wrap.classList.add("open");
+  };
+
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    list.hidden ? open() : close();
+  });
+
+  select.addEventListener("input", label);
+  document.addEventListener("click", close);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") close();
+  });
+
+  select.classList.add("visually-hidden");
+  select.parentNode.insertBefore(wrap, select);
+  wrap.append(button, list, select);
+  label();
+});

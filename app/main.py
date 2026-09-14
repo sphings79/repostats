@@ -22,6 +22,21 @@ logging.basicConfig(
 _LOGGER = logging.getLogger("repostats")
 
 BASE = Path(__file__).parent
+
+
+def _asset_version() -> str:
+    """Newest change among the static files.
+
+    Appended to the stylesheet and script URLs so a browser that cached the
+    old ones picks the new ones up after an update, without a hard reload.
+    """
+    newest = 0.0
+    for path in (BASE / "static").glob("*"):
+        newest = max(newest, path.stat().st_mtime)
+    return str(int(newest))
+
+
+ASSETS = _asset_version()
 TOKEN = os.getenv("GITHUB_TOKEN", "")
 LOGIN = os.getenv("GITHUB_LOGIN", "")
 # Optional: a classic token without any scope. Fine-grained tokens are refused
@@ -106,6 +121,7 @@ def _render(request: Request, name: str, context: dict):
         "ago": lambda v: i18n.ago(v, lang),
         "duration": lambda v: i18n.duration(v, lang),
         "auth_enabled": auth.enabled,
+        "assets": ASSETS,
     }
     return templates.TemplateResponse(request, name, context)
 
