@@ -21,16 +21,17 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Collector:
-    def __init__(self, db: Database, token: str, login: str):
+    def __init__(self, db: Database, token: str, login: str, star_token: str = ""):
         self.db = db
         self.token = token
         self.login = login
+        self.star_token = star_token
         self._lock = asyncio.Lock()
         self.running: str | None = None
 
     async def discover(self) -> int:
         """Refresh the repository list without touching any statistics."""
-        github = GitHub(self.token, self.login)
+        github = GitHub(self.token, self.login, star_token=self.star_token)
         try:
             repos = await github.repos()
             for repo in repos:
@@ -46,7 +47,7 @@ class Collector:
         async with self._lock:
             self.running = kind
             started = self.db.start_run(kind)
-            github = GitHub(self.token, self.login)
+            github = GitHub(self.token, self.login, star_token=self.star_token)
             done, note, ok = 0, "", True
             try:
                 for repo in await github.repos():

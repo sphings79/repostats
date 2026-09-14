@@ -22,8 +22,10 @@ class RateLimited(Exception):
 
 
 class GitHub:
-    def __init__(self, token: str, login: str, timeout: float = 30.0):
+    def __init__(self, token: str, login: str, timeout: float = 30.0,
+                 star_token: str = ""):
         self.login = login
+        self._star_token = star_token
         self._public: httpx.AsyncClient | None = None
         self._client = httpx.AsyncClient(
             base_url=API,
@@ -41,19 +43,22 @@ class GitHub:
         if self._public is not None:
             await self._public.aclose()
 
-    def _public_client(self) -> httpx.AsyncClient:
-        """A client without the token, for endpoints it is refused on.
+    def _star_client(self) -> httpx.AsyncClient | None:
+        """A client for the stargazers endpoint, if a token for it exists.
 
-        Fine-grained tokens are rejected on the stargazers endpoint, which is
-        public for public repositories. Sending no token at all works, at the
-        cost of a lower rate limit — and only repositories whose star count
-        changed are asked, so that limit is not a problem in practice.
+        GitHub refuses fine-grained tokens there, over REST and GraphQL alike,
+        and the endpoint is not public either. A classic token with no scopes
+        at all is enough — it can read public information and nothing else —
+        so that one is kept separately rather than widening the main token.
         """
+        if not self._star_token:
+            return None
         if self._public is None:
             self._public = httpx.AsyncClient(
                 base_url=API,
                 timeout=30.0,
                 headers={
+                    "Authorization": f"Bearer {self._star_token}",
                     "Accept": "application/vnd.github+json",
                     "X-GitHub-Api-Version": "2022-11-28",
                     "User-Agent": "repostats",
@@ -195,8 +200,13 @@ class GitHub:
                 params={"per_page": PER_PAGE, "page": page},
                 headers=headers,
             )
-            if response.status_code == 403 and client is self._client:
-                client = self._public_client()
+            if response.status_code in (401, 403) and client is self._client:
+                fallback = self._star_client()
+                if fallback is None:
+                    _LOGGER.debug("No star history for %s: the token is not "
+                                  "allowed on this endpoint", full_name)
+                    break
+                client = fallback
                 response = await client.get(
                     f"/repos/{full_name}/stargazers",
                     params={"per_page": PER_PAGE, "page": page},

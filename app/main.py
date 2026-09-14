@@ -24,12 +24,15 @@ _LOGGER = logging.getLogger("repostats")
 BASE = Path(__file__).parent
 TOKEN = os.getenv("GITHUB_TOKEN", "")
 LOGIN = os.getenv("GITHUB_LOGIN", "")
+# Optional: a classic token without any scope. Fine-grained tokens are refused
+# on the stargazers endpoint, which is where the star history comes from.
+STAR_TOKEN = os.getenv("GITHUB_TOKEN_STARS", "")
 DB_PATH = os.getenv("DB_PATH", "/data/repostats.db")
 FULL_HOUR = int(os.getenv("FULL_RUN_HOUR", "4"))
 QUICK_MINUTES = int(os.getenv("QUICK_RUN_MINUTES", "60"))
 
 db = Database(DB_PATH)
-collector = Collector(db, TOKEN, LOGIN)
+collector = Collector(db, TOKEN, LOGIN, STAR_TOKEN)
 auth = auth_module.from_env(db)
 
 
@@ -150,7 +153,9 @@ async def overview(request: Request, days: int = 30):
          "colour": "var(--accent-2)"},
     ], days=days, lang=lang)
     growth = charts.area_chart([
-        {"label": t("chart.stars"), "rows": _carried_total(repos, "stars_total", days),
+        {"label": t("chart.stars"),
+         "rows": _carried_total(repos, "stars_total", days)
+                 or db.snapshot_series("stars", days),
          "colour": "var(--gold)", "carry": True},
         {"label": t("chart.downloads"), "rows": db.snapshot_series("downloads", days),
          "colour": "var(--violet)", "carry": True},
@@ -185,8 +190,12 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         {"label": t("chart.clones_unique"), "rows": db.series(full_name, "clones_unique", days),
          "colour": "var(--violet)"},
     ], days=days, lang=lang)
+    star_rows = db.series(full_name, "stars_total", days)
+    if not star_rows:
+        # No reconstructed history — draw what the daily runs have recorded.
+        star_rows = db.repo_snapshot_series(full_name, "stars", days)
     stars = charts.area_chart([
-        {"label": t("chart.stars"), "rows": db.series(full_name, "stars_total", days),
+        {"label": t("chart.stars"), "rows": star_rows,
          "colour": "var(--gold)", "carry": True},
     ], days=days, lang=lang)
     ci = None
