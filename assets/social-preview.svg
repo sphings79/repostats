@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Repo Stats — self-hosted GitHub statistics with history">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B1B2B"/><stop offset="55%" stop-color="#10293F"/><stop offset="100%" stop-color="#0A2233"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#41BDF5"/><stop offset="100%" stop-color="#3DDC97"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1280" height="6" fill="url(#accent)"/>
+  <g stroke="#41BDF5" stroke-opacity="0.06" stroke-width="1">
+    <path d="M0 120H1280M0 240H1280M0 360H1280M0 480H1280"/>
+    <path d="M160 0V640M320 0V640M960 0V640M1120 0V640"/>
+  </g>
+
+  <g transform="translate(96 178)">
+    <rect x="0" y="6" width="13" height="24" rx="5" fill="url(#accent)" opacity="0.55"/>
+    <rect x="21" y="-6" width="13" height="36" rx="5" fill="url(#accent)" opacity="0.8"/>
+    <rect x="42" y="-22" width="13" height="52" rx="5" fill="url(#accent)"/>
+  </g>
+
+  <text x="96" y="278" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="76" font-weight="700" fill="#F2F8FC">Repo Stats</text>
+  <text x="96" y="340" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="34" font-weight="500" fill="#41BDF5">every repository, one dashboard</text>
+  <text x="96" y="394" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="23" fill="#9FB6C6">GitHub throws the traffic away after fourteen days. This keeps it.</text>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="19" font-weight="600">
+    <rect x="96" y="438" width="178" height="44" rx="22" fill="#3DDC97" fill-opacity="0.12" stroke="#3DDC97" stroke-opacity="0.45"/>
+    <text x="185" y="466" fill="#86E9BE" text-anchor="middle">Self-hosted</text>
+    <rect x="290" y="438" width="192" height="44" rx="22" fill="#41BDF5" fill-opacity="0.12" stroke="#41BDF5" stroke-opacity="0.45"/>
+    <text x="386" y="466" fill="#8FD6F7" text-anchor="middle">One container</text>
+    <rect x="498" y="438" width="178" height="44" rx="22" fill="#7C7CF5" fill-opacity="0.12" stroke="#7C7CF5" stroke-opacity="0.45"/>
+    <text x="587" y="466" fill="#B3B3FA" text-anchor="middle">DE &#183; EN</text>
+  </g>
+
+  <g transform="translate(866 190)">
+    <rect x="0" y="0" width="300" height="288" rx="20" fill="#16202B" stroke="#28394A" stroke-width="2"/>
+    <rect x="20" y="20" width="128" height="58" rx="10" fill="#0F1720" stroke="#28394A"/>
+    <text x="34" y="42" font-family="-apple-system,sans-serif" font-size="11" fill="#9FB0C0">VISITORS</text>
+    <text x="34" y="66" font-family="ui-monospace,Menlo,monospace" font-size="22" font-weight="700" fill="#41BDF5">293</text>
+    <rect x="156" y="20" width="124" height="58" rx="10" fill="#0F1720" stroke="#28394A"/>
+    <text x="170" y="42" font-family="-apple-system,sans-serif" font-size="11" fill="#9FB0C0">CLONES</text>
+    <text x="170" y="66" font-family="ui-monospace,Menlo,monospace" font-size="22" font-weight="700" fill="#3DDC97">139</text>
+    <rect x="20" y="92" width="260" height="176" rx="10" fill="#0F1720" stroke="#28394A"/>
+    <polyline points="36,240 66,228 92,204 120,214 148,166 176,142 204,180 232,152 262,132"
+              fill="none" stroke="url(#accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    <polygon points="36,256 36,240 66,228 92,204 120,214 148,166 176,142 204,180 232,152 262,132 262,256"
+             fill="url(#accent)" fill-opacity="0.10"/>
+  </g>
+</svg>

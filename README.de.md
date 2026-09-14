@@ -1,88 +1,196 @@
+<div align="center">
+
+<img src="assets/banner.svg" alt="Repo Stats — selbst gehostetes Dashboard für GitHub-Statistiken" width="100%">
+
 # Repo Stats
+
+**Ein selbst gehostetes Dashboard für alles, was GitHub über die eigenen Repositories weiß — und für die Zahlen, die es nach zwei Wochen wegwirft.**
 
 *[English version](README.md)*
 
-Ein kleines, selbst gehostetes Dashboard für alles, was GitHub über die eigenen
-Repositories weiß — und für die Zahlen, die es nach zwei Wochen wegwirft.
+[![Image](https://github.com/sphings79/repostats/actions/workflows/docker.yml/badge.svg)](https://github.com/sphings79/repostats/actions/workflows/docker.yml)
+[![Check](https://github.com/sphings79/repostats/actions/workflows/check.yml/badge.svg)](https://github.com/sphings79/repostats/actions/workflows/check.yml)
+[![Container](https://img.shields.io/badge/ghcr.io-repostats-41BDF5?logo=docker&logoColor=white)](https://github.com/sphings79/repostats/pkgs/container/repostats)
+[![Lizenz](https://img.shields.io/github/license/sphings79/repostats?color=3DDC97)](LICENSE)
+[![Sterne](https://img.shields.io/github/stars/sphings79/repostats?color=FFC107)](https://github.com/sphings79/repostats/stargazers)
+
+</div>
+
+---
 
 GitHub zeigt den Verkehr pro Repository, für vierzehn Tage, ein Repository nach
 dem anderen. Es gibt keine Übersicht über mehrere, keine Historie und nirgends
-eine Download-Zahl. Hier landet alles in einer SQLite-Datei und wird gezeichnet.
+eine Download-Zahl. **Repo Stats sammelt alles in einer SQLite-Datei und
+zeichnet es** — selbst gehostet, in einem Container, im eigenen Netz.
+
+<div align="center">
+
+<img src="assets/overview.svg" alt="Die Übersicht: Kacheln für Sterne, Besucher, Clones und Installationen, ein Verkehrsdiagramm und eine sortierbare Tabelle" width="100%">
+
+</div>
+
+## Inhalt
+
+- [Wozu das gut ist](#wozu-das-gut-ist)
+- [Was drin steht](#was-drin-steht)
+- [Betrieb](#betrieb)
+- [Einstellungen](#einstellungen)
+- [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy)
+- [Wie es arbeitet](#wie-es-arbeitet)
+- [Fragen](#fragen)
+- [Mitmachen](#mitmachen)
+
+## Wozu das gut ist
+
+**GitHub löscht die Verkehrsdaten nach vierzehn Tagen.** Aufrufe, eindeutige
+Besucher, Clones, Herkunft — weg, ohne Möglichkeit sie zurückzuholen. Wer
+wissen will, ob der Beitrag von letztem Monat tatsächlich jemanden gebracht
+hat, findet die Antwort nicht mehr vor.
+
+**Es gibt keine Sicht über mehrere Repositories.** Bei fünfzig Repositories
+heißt „woher kommen meine Besucher" fünfzig Mal Insights öffnen.
+
+**Release-Downloads zeigt GitHub gar nicht.** Die Zahl wird pro Datei geführt
+und in der Oberfläche nirgends angezeigt.
+
+Ein täglicher Sammellauf löst alle drei Punkte. Jeder Lauf liefert das
+komplette Vierzehn-Tage-Fenster — Ausfälle unter zwei Wochen heilen sich damit
+von selbst.
 
 ## Was drin steht
 
-**Pro Konto:** Sterne, Forks, Beobachter, offene Issues, Release-Downloads,
-Aufrufe und Clones über alle verfolgten Repositories, woher die Besucher kommen,
-und wie sich das über die Zeit bewegt.
+**Über das Konto** — Sterne, Forks, Beobachter, offene Issues,
+Release-Downloads, Besucher und Clones über alle verfolgten Repositories, woher
+die Besucher kommen und wie sich das über die Zeit bewegt.
 
-**Pro Repository:** dieselben Zahlen im Detail, dazu Mitwirkende, Commits,
+**Pro Repository** — dieselben Zahlen im Detail, dazu Mitwirkende, Commits,
 offene und gemergte Pull Requests, Erfolgsquote und Dauer der CI-Läufe, die
-meistbesuchten Seiten, die offenen Issues samt Links, Downloads je
-Release-Datei — und eine Sterne-Kurve, die bis zum ersten Stern zurückreicht.
-Die wird aus den Zeitstempeln der einzelnen Stargazer rekonstruiert, steht also
-schon nach dem ersten Lauf zur Verfügung, statt bei null anzufangen.
+meistbesuchten Seiten, Downloads je Release-Datei und die offenen Issues samt
+Links.
 
-**Für Home-Assistant-Integrationen** kommt die Installationszahl von
-`analytics.home-assistant.io` dazu. Das ist die einzige Zahl hier, die zählt,
-wer etwas tatsächlich benutzt — und nicht, wer es sich angesehen hat.
+**Eine Sternkurve bis zum ersten Stern**, rekonstruiert aus den Zeitstempeln
+der einzelnen Stargazer — die Historie steht also schon nach dem ersten Lauf
+zur Verfügung, statt bei null anzufangen.
 
-## Warum gesammelt werden muss
+**Für Home-Assistant-Integrationen** die Installationszahl von
+`analytics.home-assistant.io`, aufgeteilt nach Version: Eine Integrations-Domain
+gehört allen, die sie ausliefern, und gezählt werden nur die Versionen, die aus
+dem eigenen Repository stammen.
 
-Aufruf- und Clone-Zahlen sieht nur der Eigentümer des Repositories, sie brauchen
-also ein Token — deshalb läuft das serverseitig und nicht im Browser. Und GitHub
-löscht sie nach vierzehn Tagen: Was bis dahin nicht gesichert ist, ist endgültig
-weg. Ein Lauf am Tag genügt, denn jeder Lauf liefert das komplette
-Vierzehn-Tage-Fenster — Ausfälle unter zwei Wochen heilen sich damit von selbst.
+Jede Kachel öffnet eine Aufschlüsselung, aus welchen Repositories die Zahl
+besteht, und jede trägt eine Erklärung, was sie tatsächlich zählt — denn
+„2.592 Clones" heißt meistens: die eigene CI, nicht Menschen.
 
 ## Betrieb
 
 ```bash
-cp .env.example .env    # Token und Konto eintragen
+git clone https://github.com/sphings79/repostats.git
+cd repostats
+cp .env.example .env     # Token und Konto eintragen
 docker compose up -d
 ```
 
-Dann `http://<host>:8377` öffnen, unter *Verwaltung* die Repositories auswählen
-und *Jetzt alles sammeln* drücken.
+Dann `http://<host>:8377` öffnen, anmelden, unter *Verwaltung* die
+Repositories auswählen und *Jetzt alles sammeln* drücken.
 
-Das Token braucht den Scope `repo` (klassisch) oder Lesezugriff auf Actions,
-Administration, Contents, Issues, Metadata und Pull requests (fein granuliert).
-Ohne Token funktioniert alles außer den Verkehrszahlen — die bleiben leer.
+Das Image wird für **amd64 und arm64** veröffentlicht, auf dem eigenen Host
+wird also nichts kompiliert. Die Daten liegen als eine SQLite-Datei in einem
+Volume — ein Backup ist eine Dateikopie.
 
-Für die rückwirkende Sternhistorie braucht es `GITHUB_TOKEN_STARS`: GitHub weist
-fein granulierte Tokens am Stargazer-Endpunkt ab, über REST wie über GraphQL,
-und anonym gibt es dort auch nichts. Nötig ist ein klassisches Token mit dem
-Scope `public_repo`. Getrennt gehalten heißt: Das Haupttoken braucht nirgends
-Schreibrechte. Ohne das Token beginnt die Sternkurve beim ersten Sammellauf.
-
-`AUTH_PASSWORD` sollte gesetzt sein, außer es läuft kurz auf dem eigenen
-Rechner: Hier stehen die privaten Repositories, und im Container liegt ein
-Token, das sie alle lesen kann.
+## Einstellungen
 
 | Variable | Vorgabe | Bedeutung |
 |---|---|---|
 | `GITHUB_TOKEN` | — | Persönliches Zugriffstoken, erforderlich |
 | `GITHUB_LOGIN` | — | Das Konto, das gesammelt wird, erforderlich |
-| `GITHUB_TOKEN_STARS` | — | Klassisches Token mit `public_repo`, für die Sternhistorie |
 | `AUTH_USER` | `admin` | Benutzer für die Anmeldung |
 | `AUTH_PASSWORD` | — | Passwort; leer schaltet die Anmeldung ab |
+| `GITHUB_TOKEN_STARS` | — | Klassisches Token mit `public_repo`, für die Sternhistorie |
 | `PORT` | `8377` | Port auf dem Host |
 | `FULL_RUN_HOUR` | `4` | Stunde (UTC) des täglichen Komplettlaufs |
 | `QUICK_RUN_MINUTES` | `60` | Wie oft die günstigen Zähler aktualisiert werden |
 
-Die Daten liegen im Volume `repostats-data` als eine SQLite-Datei — ein Backup
-ist also eine Dateikopie.
+**Das Token braucht die passenden Rechte**, und eines davon übersieht man
+leicht:
 
-## Hinweise
+- Fein granuliert: Lesezugriff auf **Administration** (das schaltet die
+  Verkehrszahlen frei), Contents, Issues, Metadata, Pull requests und Actions
+  für die CI-Zahlen.
+- Klassisch: der Scope `repo`.
 
-- Die Oberfläche spricht Deutsch und Englisch, der Umschalter sitzt oben rechts.
-- Code und Kommentare sind auf Englisch.
-- Nichts verlässt das eigene Netz. Nach außen gehen nur Anfragen an die
-  GitHub-API und an die Home-Assistant-Statistik.
-- Das Dashboard hat eine eigene Anmeldung. Hinter einem Reverse Proxy
-  zusätzlich aufs eigene Netz beschränken — `docs/traefik.yaml.example` zeigt
-  beide Schlösser zusammen, und `compose.override.yaml.example` hängt den
-  Container ins Proxy-Netz, ohne einen Port zu veröffentlichen.
+**`AUTH_PASSWORD` sollte gesetzt sein**, außer es läuft kurz auf dem eigenen
+Rechner. Hier stehen die privaten Repositories, und im Container liegt ein
+Token, das sie alle lesen kann.
+
+**Die Sternhistorie braucht ein zweites Token.** GitHub weist fein granulierte
+Tokens am Stargazer-Endpunkt ab, über REST wie über GraphQL, und anonym gibt es
+dort nichts. `GITHUB_TOKEN_STARS` nimmt ein klassisches Token mit
+`public_repo`; getrennt gehalten heißt: Das Haupttoken braucht nirgends
+Schreibrechte. Ohne das Token beginnt die Sternkurve beim ersten Sammellauf.
+
+## Hinter einem Reverse Proxy
+
+`docs/traefik.yaml.example` zeigt eine Route mit zwei Schlössern: auf das
+eigene Netz beschränkt, und die Anmeldung des Dashboards obendrauf.
+`compose.override.yaml.example` hängt den Container ins Proxy-Netz, ohne einen
+Port zu veröffentlichen.
+
+## Wie es arbeitet
+
+Ein Container, eine SQLite-Datei, keine fremden Dienste.
+
+- **Stündlich** — die günstigen Zähler: Sterne, Forks, Beobachter,
+  Release-Downloads.
+- **Täglich** — alles andere: Verkehr, Herkunft, meistbesuchte Seiten, Issues,
+  CI-Läufe, Mitwirkende, Commits, Home-Assistant-Installationen.
+
+Die Diagramme sind serverseitig erzeugtes SVG. Keine Chart-Bibliothek, kein
+Build-Schritt, kein CDN — die Seiten rendern von selbst und funktionieren auch
+offline.
+
+Nach außen gehen nur Anfragen an die GitHub-API und an die
+Home-Assistant-Statistik.
+
+## Fragen
+
+**Warum sind meine Clone-Zahlen so hoch?**
+Weil die meisten davon Maschinen sind. Jeder `actions/checkout` in einem
+Workflow ist für GitHub ein Clone — bei einem Matrix-Build einer pro Job. Dazu
+kommen Bots und Spiegeldienste. Deshalb steht in der Kachel die Zahl der
+unterschiedlichen Klonenden vorn und die Rohzahl klein darunter.
+
+**Warum zeigt eine Integration Installationen, die ich nicht kenne?**
+Home Assistant meldet pro Integrations-Domain, und die gehört allen, die diese
+Integration ausliefern. Repo Stats teilt die Zahl nach Version auf und zählt
+nur die Versionen aus dem eigenen Repository.
+
+**Geht es ohne Token?**
+Teilweise. Sterne, Forks und Downloads sind öffentlich. Verkehr und Clones
+nicht — dafür braucht es ein Token, und genau deshalb läuft das serverseitig.
+
+**Kann es fremde Repositories beobachten?**
+Nur für die öffentlichen Zahlen. Den Verkehr sieht ausschließlich der
+Eigentümer.
+
+**Funkt es nach Hause?**
+Nein. Keine Telemetrie, keine Statistik, keine Update-Prüfung.
+
+## Mitmachen
+
+Issues und Pull Requests sind willkommen — besonders für Zahlen, die noch
+fehlen.
+
+Wenn dir das fünfzig Insights-Seiten erspart, hilft ein ⭐ anderen, es zu
+finden.
+
+<a href="https://buymeacoffee.com/sphings"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-FFC107?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a>
 
 ## Lizenz
 
-MIT
+MIT — siehe [LICENSE](LICENSE).
+
+---
+
+<sub>GitHub Statistik Dashboard · Repository-Analyse · Verkehrshistorie ·
+Clone-Zähler · Sternverlauf · Release-Downloads · selbst gehostet · Docker ·
+FastAPI · SQLite · Home Assistant Analytics</sub>

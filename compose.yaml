@@ -1,7 +1,8 @@
 services:
   repostats:
-    build: .
-    image: repostats:latest
+    # Built for amd64 and arm64 by the Image workflow. To run your own
+    # changes instead, put `build: .` in compose.override.yaml.
+    image: ghcr.io/sphings79/repostats:latest
     container_name: repostats
     restart: unless-stopped
     environment:

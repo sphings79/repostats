@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-label="The overview: tiles for stars, forks, visitors, clones, downloads and Home Assistant installs, a traffic chart, referrers, and a sortable table of repositories">
+  <defs>
+    <linearGradient id="a" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#41BDF5"/><stop offset="100%" stop-color="#3DDC97"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .panel { fill:#16202B; stroke:#28394A; stroke-width:1.5; }
+    .inner { fill:#0F1720; stroke:#28394A; stroke-width:1; }
+    .h    { font:700 15px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; fill:#E6EDF3; }
+    .lbl  { font:400 12px -apple-system,sans-serif; fill:#9FB0C0; }
+    .val  { font:700 26px ui-monospace,SFMono-Regular,Menlo,monospace; fill:#E6EDF3; }
+    .sub  { font:400 11px ui-monospace,Menlo,monospace; fill:#7A8B9C; }
+    .col  { font:500 10px -apple-system,sans-serif; fill:#9FB0C0; letter-spacing:.6px; }
+    .cell { font:600 12px ui-monospace,Menlo,monospace; fill:#E6EDF3; }
+    .name { font:600 13px -apple-system,sans-serif; fill:#E6EDF3; }
+    .dim  { font:400 11px -apple-system,sans-serif; fill:#7A8B9C; }
+  </style>
+
+  <rect width="1200" height="760" rx="16" fill="#0F1720"/>
+  <rect x="0" y="0" width="1200" height="3" fill="url(#a)"/>
+
+  <!-- header -->
+  <rect x="0" y="3" width="1200" height="52" fill="#101923"/>
+  <line x1="0" y1="55" x2="1200" y2="55" stroke="#28394A"/>
+  <g transform="translate(36 21)">
+    <rect x="0" y="8" width="5" height="9" rx="2" fill="url(#a)" opacity="0.55"/>
+    <rect x="8" y="3" width="5" height="14" rx="2" fill="url(#a)" opacity="0.8"/>
+    <rect x="16" y="-3" width="5" height="20" rx="2" fill="url(#a)"/>
+  </g>
+  <text class="h" x="68" y="35">Repo Stats</text>
+  <text class="lbl" x="172" y="35" fill="#E6EDF3">Übersicht</text>
+  <line x1="170" y1="43" x2="234" y2="43" stroke="#41BDF5" stroke-width="2"/>
+  <text class="lbl" x="252" y="35">Verwaltung</text>
+  <rect x="1104" y="18" width="30" height="20" rx="6" fill="#41BDF5" fill-opacity="0.16"/>
+  <text class="sub" x="1112" y="32" fill="#41BDF5">DE</text>
+  <text class="sub" x="1146" y="32">EN</text>
+
+  <!-- KPI tiles -->
+  <g>
+    <g transform="translate(36 84)">
+      <rect class="panel" width="272" height="86" rx="12"/>
+      <rect width="272" height="2" rx="1" fill="#FFC107" opacity="0.8"/>
+      <text class="lbl" x="18" y="30">Sterne</text>
+      <text class="val" x="18" y="62">37</text>
+      <circle cx="248" cy="24" r="9" fill="#FFFFFF" fill-opacity="0.06"/>
+      <text class="sub" x="245" y="28" fill="#7A8B9C">i</text>
+    </g>
+    <g transform="translate(324 84)">
+      <rect class="panel" width="272" height="86" rx="12"/>
+      <rect width="272" height="2" rx="1" fill="#41BDF5" opacity="0.8"/>
+      <text class="lbl" x="18" y="30">Besucher (14 T)</text>
+      <text class="val" x="18" y="62" fill="#E6EDF3">293</text>
+      <text class="sub" x="18" y="78">1.033 Aufrufe</text>
+      <circle cx="248" cy="24" r="9" fill="#FFFFFF" fill-opacity="0.06"/>
+      <text class="sub" x="245" y="28" fill="#7A8B9C">i</text>
+    </g>
+    <g transform="translate(612 84)">
+      <rect class="panel" width="272" height="86" rx="12"/>
+      <rect width="272" height="2" rx="1" fill="#3DDC97" opacity="0.8"/>
+      <text class="lbl" x="18" y="30">Klonende (14 T)</text>
+      <text class="val" x="18" y="62">139</text>
+      <text class="sub" x="18" y="78">250 Clones</text>
+      <circle cx="248" cy="24" r="9" fill="#FFFFFF" fill-opacity="0.06"/>
+      <text class="sub" x="245" y="28" fill="#7A8B9C">i</text>
+    </g>
+    <g transform="translate(900 84)">
+      <rect class="panel" width="264" height="86" rx="12"/>
+      <rect width="264" height="2" rx="1" fill="#7C7CF5" opacity="0.8"/>
+      <text class="lbl" x="18" y="30">HA-Installationen</text>
+      <text class="val" x="18" y="62">1.163</text>
+      <circle cx="240" cy="24" r="9" fill="#FFFFFF" fill-opacity="0.06"/>
+      <text class="sub" x="237" y="28" fill="#7A8B9C">i</text>
+    </g>
+  </g>
+
+  <!-- traffic chart -->
+  <rect class="panel" x="36" y="188" width="1128" height="238" rx="14"/>
+  <text class="h" x="58" y="216">Verkehr über alle Repositories</text>
+  <g stroke="#28394A" stroke-opacity="0.6">
+    <path d="M96 250H1140M96 290H1140M96 330H1140M96 370H1140M96 400H1140"/>
+  </g>
+  <g class="sub" fill="#7A8B9C">
+    <text x="88" y="254" text-anchor="end">176</text>
+    <text x="88" y="294" text-anchor="end">132</text>
+    <text x="88" y="334" text-anchor="end">88</text>
+    <text x="88" y="374" text-anchor="end">44</text>
+    <text x="88" y="404" text-anchor="end">0</text>
+    <text x="96" y="418">16.08.</text>
+    <text x="612" y="418" text-anchor="middle">31.08.</text>
+    <text x="1140" y="418" text-anchor="end">14.09.</text>
+  </g>
+  <polygon points="96,400 96,398 200,396 300,390 380,352 450,378 520,366 600,300 660,258 720,318 800,286 880,330 960,300 1040,346 1100,318 1140,376 1140,400"
+           fill="#41BDF5" fill-opacity="0.10"/>
+  <polyline points="96,398 200,396 300,390 380,352 450,378 520,366 600,300 660,258 720,318 800,286 880,330 960,300 1040,346 1100,318 1140,376"
+            fill="none" stroke="#41BDF5" stroke-width="2.2" stroke-linejoin="round"/>
+  <polyline points="96,400 200,399 300,396 380,382 450,392 520,386 600,356 660,336 720,368 800,352 880,374 960,358 1040,380 1100,366 1140,390"
+            fill="none" stroke="#3DDC97" stroke-width="2.2" stroke-linejoin="round"/>
+  <g>
+    <rect x="58" y="432" width="9" height="9" rx="2" fill="#41BDF5"/>
+    <text class="sub" x="74" y="440" fill="#9FB0C0">Aufrufe</text>
+    <rect x="136" y="432" width="9" height="9" rx="2" fill="#3DDC97"/>
+    <text class="sub" x="152" y="440" fill="#9FB0C0">Clones</text>
+  </g>
+
+  <!-- repository table -->
+  <rect class="panel" x="36" y="452" width="1128" height="276" rx="14"/>
+  <text class="h" x="58" y="482">Repositories</text>
+  <g class="col">
+    <text x="58" y="512">REPOSITORY</text>
+    <text x="640" y="512" text-anchor="end">★</text>
+    <text x="730" y="512" text-anchor="end">AUFRUFE</text>
+    <text x="828" y="512" text-anchor="end">CLONES</text>
+    <text x="940" y="512" text-anchor="end">DOWNLOADS</text>
+    <text x="1000" y="512" text-anchor="end">CI</text>
+    <text x="1142" y="512" text-anchor="end">30 TAGE</text>
+  </g>
+  <line x1="58" y1="522" x2="1142" y2="522" stroke="#28394A"/>
+  <g>
+    <g transform="translate(0 40)">
+      <text class="name" x="58" y="514">markdown-toc</text>
+      <text class="dim" x="58" y="530">Generates a table of contents for Markdown files</text>
+      <text class="cell" x="640" y="520" text-anchor="end">8</text>
+      <text class="cell" x="730" y="520" text-anchor="end">637</text>
+      <text class="cell" x="828" y="520" text-anchor="end">59</text>
+      <text class="cell" x="940" y="520" text-anchor="end">0</text>
+      <text class="cell" x="1000" y="520" text-anchor="end" fill="#3DDC97">100 %</text>
+      <polyline points="1048,524 1064,518 1076,522 1090,508 1104,514 1118,504 1136,510" fill="none" stroke="#41BDF5" stroke-width="1.8"/>
+    </g>
+    <line x1="58" y1="578" x2="1142" y2="578" stroke="#28394A" stroke-opacity="0.5"/>
+    <g transform="translate(0 106)">
+      <text class="name" x="58" y="514">csv-diff</text>
+      <text class="dim" x="58" y="530">Compares two CSV files row by row</text>
+      <text class="cell" x="640" y="520" text-anchor="end">6</text>
+      <text class="cell" x="730" y="520" text-anchor="end">396</text>
+      <text class="cell" x="828" y="520" text-anchor="end">191</text>
+      <text class="cell" x="940" y="520" text-anchor="end">45</text>
+      <text class="cell" x="1000" y="520" text-anchor="end" fill="#3DDC97">92 %</text>
+      <polyline points="1048,520 1064,524 1076,512 1090,516 1104,506 1118,512 1136,502" fill="none" stroke="#41BDF5" stroke-width="1.8"/>
+    </g>
+    <line x1="58" y1="644" x2="1142" y2="644" stroke="#28394A" stroke-opacity="0.5"/>
+    <g transform="translate(0 172)">
+      <text class="name" x="58" y="514">photo-dedupe</text>
+      <text class="dim" x="58" y="530">Finds duplicate photos by content hash</text>
+      <text class="cell" x="640" y="520" text-anchor="end">2</text>
+      <text class="cell" x="730" y="520" text-anchor="end">118</text>
+      <text class="cell" x="828" y="520" text-anchor="end">284</text>
+      <text class="cell" x="940" y="520" text-anchor="end">12</text>
+      <text class="cell" x="1000" y="520" text-anchor="end" fill="#FFC107">74 %</text>
+      <polyline points="1048,518 1064,514 1076,520 1090,510 1104,516 1118,508 1136,512" fill="none" stroke="#41BDF5" stroke-width="1.8"/>
+    </g>
+  </g>
+</svg>
