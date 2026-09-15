@@ -105,6 +105,9 @@ footer {
 .kpis {
   display: grid; gap: 12px; margin-bottom: 22px;
   grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  /* not every tile carries a second line, so without this a row of plain
+     tiles ends up shorter than the row above it */
+  grid-auto-rows: 1fr;
 }
 .kpi {
   position: relative; overflow: hidden;

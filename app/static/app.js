@@ -39,6 +39,42 @@ document.querySelectorAll("[data-tooltip]").forEach((wrap) => {
   });
 });
 
+// The small "i" on a KPI tile opens its explanation. The tile clips its own
+// content, so it also has to be told to let the box out while it is open.
+const closeHints = (keep) => {
+  document.querySelectorAll(".kpi.open").forEach((kpi) => {
+    if (kpi === keep) return;
+    kpi.classList.remove("open");
+    kpi.querySelector(".hint-box").hidden = true;
+    kpi.querySelector(".info").setAttribute("aria-expanded", "false");
+  });
+};
+
+document.querySelectorAll(".kpi .info").forEach((button) => {
+  const kpi = button.closest(".kpi");
+  const box = kpi.querySelector(".hint-box");
+  if (!box) return;
+
+  button.addEventListener("click", (event) => {
+    // the whole tile can be a link, so the click must not travel further
+    event.stopPropagation();
+    event.preventDefault();
+    const open = kpi.classList.contains("open");
+    closeHints(kpi);
+    kpi.classList.toggle("open", !open);
+    box.hidden = open;
+    button.setAttribute("aria-expanded", String(!open));
+  });
+});
+
+document.addEventListener("click", (event) => {
+  // a click inside the box itself leaves it open
+  if (!event.target.closest(".hint-box")) closeHints();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeHints();
+});
+
 // Sortable overview table.
 const table = document.getElementById("repo-table");
 if (table) {
