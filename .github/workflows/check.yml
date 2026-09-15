@@ -46,7 +46,8 @@ jobs:
           from jinja2 import Environment, FileSystemLoader
           env = Environment(loader=FileSystemLoader('app/templates'))
           for name in ('base.html', 'index.html', 'repo.html', 'settings.html',
-                       'issues.html', 'top.html', 'login.html', 'kpi.html'):
+                       'issues.html', 'top.html', 'login.html', 'kpi.html',
+                       'setup.html', 'account.html'):
               env.get_template(name)
           print('templates parse')
           "

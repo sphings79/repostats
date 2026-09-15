@@ -282,6 +282,17 @@ td.name label { cursor: pointer; font-weight: 600; }
 .login input { height: 40px; font-size: 14px; }
 .login .warning { margin: 0; padding: 9px 12px; font-size: 13px; }
 
+/* the account page: two small forms side by side */
+.account { display: flex; flex-direction: column; gap: 14px; }
+.account h2 { margin: 0 0 2px; }
+.account label { display: flex; flex-direction: column; gap: 6px; }
+.account label span { color: var(--muted); font-size: 12.5px; }
+.account input { height: 40px; font-size: 14px; }
+.account .warning, .account .note { margin: 0; padding: 9px 12px; font-size: 13px; }
+.account .note { border: 1px solid var(--line); border-radius: 10px; background: var(--bg-soft); }
+.account button { align-self: flex-start; }
+.account .option { flex-direction: row; align-items: center; }
+.account .option span { font-size: 13px; color: var(--text); }
 .lang .logout { color: var(--dim); margin-left: 8px; }
 .lang .logout:hover { color: var(--text); }
 

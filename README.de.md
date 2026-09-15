@@ -90,8 +90,9 @@ cp .env.example .env     # Token und Konto eintragen
 docker compose up -d
 ```
 
-Dann `http://<host>:8377` öffnen, anmelden, unter *Verwaltung* die
-Repositories auswählen und *Jetzt alles sammeln* drücken.
+Dann `http://<host>:8377` öffnen. Beim ersten Aufruf fragt das Dashboard nach
+Benutzername und Passwort — dieses Konto ist von da an die Anmeldung. Unter
+*Verwaltung* die Repositories auswählen und *Jetzt alles sammeln* drücken.
 
 Das Image wird für **amd64 und arm64** veröffentlicht, auf dem eigenen Host
 wird also nichts kompiliert. Die Daten liegen als eine SQLite-Datei in einem
@@ -103,8 +104,6 @@ Volume — ein Backup ist eine Dateikopie.
 |---|---|---|
 | `GITHUB_TOKEN` | — | Persönliches Zugriffstoken, erforderlich |
 | `GITHUB_LOGIN` | — | Das Konto, das gesammelt wird, erforderlich |
-| `AUTH_USER` | `admin` | Benutzer für die Anmeldung |
-| `AUTH_PASSWORD` | — | Passwort; leer schaltet die Anmeldung ab |
 | `GITHUB_TOKEN_STARS` | — | Klassisches Token mit `public_repo`, für die Sternhistorie |
 | `PORT` | `8377` | Port auf dem Host |
 | `FULL_RUN_HOUR` | `4` | Stunde (UTC) des täglichen Komplettlaufs |
@@ -118,9 +117,19 @@ leicht:
   für die CI-Zahlen.
 - Klassisch: der Scope `repo`.
 
-**`AUTH_PASSWORD` sollte gesetzt sein**, außer es läuft kurz auf dem eigenen
-Rechner. Hier stehen die privaten Repositories, und im Container liegt ein
-Token, das sie alle lesen kann.
+**Die Anmeldung wird im Browser eingerichtet, nicht über die Umgebung.** Beim
+ersten Start gibt es noch kein Konto, und jeder Aufruf landet auf einer
+Einrichtungsseite — diesen Schritt also direkt nach `docker compose up`
+erledigen: Bis dahin legt das Konto an, wer den Port zuerst erreicht. Hier
+stehen die privaten Repositories, und im Container liegt ein Token, das sie
+alle lesen kann. Benutzername und Passwort lassen sich später unter *Konto*
+ändern.
+
+**Passwort vergessen?** Konto verwerfen und neu einrichten:
+
+```bash
+docker compose exec repostats python -c "import sqlite3; c = sqlite3.connect('/data/repostats.db'); c.execute('DELETE FROM account'); c.commit()"
+```
 
 **Die Sternhistorie braucht ein zweites Token.** GitHub weist fein granulierte
 Tokens am Stargazer-Endpunkt ab, über REST wie über GraphQL, und anonym gibt es

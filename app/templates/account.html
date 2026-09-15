@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ t('account.title') }} · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <h1>{{ t('account.title') }}</h1>
+    <p class="sub">{{ t('account.sub') }}</p>
+  </div>
+</section>
+
+<div class="split">
+  <form method="post" action="/account/name" class="panel account">
+    <h2>{{ t('account.name.title') }}</h2>
+    {% if done == 'name' %}<p class="note ok">{{ t('account.done.name') }}</p>{% endif %}
+    {% if name_error %}<p class="warning">{{ t(name_error, n=min_password) }}</p>{% endif %}
+
+    <label>
+      <span>{{ t('login.user') }}</span>
+      <input type="text" name="user" value="{{ name }}" autocomplete="username" required>
+    </label>
+    <label>
+      <span>{{ t('account.current') }}</span>
+      <input type="password" name="current" autocomplete="current-password" required>
+    </label>
+    <button type="submit">{{ t('account.name.submit') }}</button>
+  </form>
+
+  <form method="post" action="/account/password" class="panel account">
+    <h2>{{ t('account.password.title') }}</h2>
+    {% if done == 'password' %}<p class="note ok">{{ t('account.done.password') }}</p>{% endif %}
+    {% if password_error %}<p class="warning">{{ t(password_error, n=min_password) }}</p>{% endif %}
+
+    <label>
+      <span>{{ t('account.current') }}</span>
+      <input type="password" name="current" autocomplete="current-password" required>
+    </label>
+    <label>
+      <span>{{ t('account.new') }}</span>
+      <input type="password" name="password" autocomplete="new-password"
+             minlength="{{ min_password }}" required>
+    </label>
+    <label>
+      <span>{{ t('account.repeat') }}</span>
+      <input type="password" name="repeat" autocomplete="new-password"
+             minlength="{{ min_password }}" required>
+    </label>
+    <label class="option">
+      <input type="checkbox" name="others">
+      <span>{{ t('account.others') }}</span>
+    </label>
+    <button type="submit">{{ t('account.password.submit') }}</button>
+  </form>
+</div>
+
+{% endblock %}

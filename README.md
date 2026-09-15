@@ -88,8 +88,9 @@ cp .env.example .env     # put your token and account in
 docker compose up -d
 ```
 
-Then open `http://<host>:8377`, sign in, pick the repositories to follow under
-*Settings*, and press *Collect everything now*.
+Then open `http://<host>:8377`. The first visit asks for a user name and a
+password — that account is the login from then on. Pick the repositories to
+follow under *Settings* and press *Collect everything now*.
 
 The image is published for **amd64 and arm64**, so nothing is compiled on your
 host. Data lives in one SQLite file inside a volume — a backup is one file
@@ -101,8 +102,6 @@ copy.
 |---|---|---|
 | `GITHUB_TOKEN` | — | personal access token, required |
 | `GITHUB_LOGIN` | — | the account to collect, required |
-| `AUTH_USER` | `admin` | user for the dashboard login |
-| `AUTH_PASSWORD` | — | password; empty turns the login off |
 | `GITHUB_TOKEN_STARS` | — | classic token with `public_repo`, for the star history |
 | `PORT` | `8377` | port on the host |
 | `FULL_RUN_HOUR` | `4` | hour (UTC) of the daily full run |
@@ -115,9 +114,18 @@ copy.
   the CI numbers.
 - Classic: the `repo` scope.
 
-**Set `AUTH_PASSWORD`** unless this runs on a laptop for a minute. The
-dashboard lists your private repositories, and the container holds a token
-that can read every one of them.
+**The login is set up in the browser, not in the environment.** On the first
+start the dashboard has no account and sends every visitor to a setup page, so
+do that step right after `docker compose up` — until it is done, whoever
+reaches the port first can claim the account. The dashboard lists your private
+repositories, and the container holds a token that can read every one of them.
+User name and password can be changed later under *Account*.
+
+**Forgotten the password?** Drop the account and set it up again:
+
+```bash
+docker compose exec repostats python -c "import sqlite3; c = sqlite3.connect('/data/repostats.db'); c.execute('DELETE FROM account'); c.commit()"
+```
 
 **The star history needs a second token.** GitHub refuses fine-grained tokens
 on the stargazers endpoint, over REST and GraphQL alike, and serves nothing to

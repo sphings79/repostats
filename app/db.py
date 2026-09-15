@@ -120,6 +120,13 @@ CREATE TABLE IF NOT EXISTS run (
     note        TEXT
 );
 
+CREATE TABLE IF NOT EXISTS account (
+    id         INTEGER PRIMARY KEY CHECK (id = 1),
+    name       TEXT NOT NULL,
+    secret     TEXT NOT NULL,
+    changed_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS baseline (
     scope      TEXT NOT NULL,
     metric     TEXT NOT NULL,
@@ -190,6 +197,21 @@ class Database:
         except Exception:
             con.rollback()
             raise
+
+    # ---- the one account -------------------------------------------------
+
+    def account(self):
+        with self.connect() as con:
+            return con.execute("SELECT * FROM account WHERE id = 1").fetchone()
+
+    def write_account(self, name: str, secret: str) -> None:
+        with self.connect() as con:
+            con.execute("INSERT INTO account (id, name, secret, changed_at)"
+                        " VALUES (1, ?, ?, ?)"
+                        " ON CONFLICT (id) DO UPDATE SET"
+                        " name = excluded.name, secret = excluded.secret,"
+                        " changed_at = excluded.changed_at",
+                        (name, secret, _now()))
 
     # ---- what a tile looked like last time -------------------------------
 

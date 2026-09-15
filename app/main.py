@@ -63,7 +63,7 @@ QUICK_MINUTES = int(os.getenv("QUICK_RUN_MINUTES", "60"))
 
 db = Database(DB_PATH)
 collector = Collector(db, TOKEN, LOGIN, STAR_TOKEN)
-auth = auth_module.from_env(db)
+auth = auth_module.Auth(db)
 
 
 async def _scheduler() -> None:
@@ -109,14 +109,20 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Repo Stats", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 
-OPEN_PATHS = ("/login", "/health", "/static", "/lang")
+OPEN_PATHS = ("/login", "/setup", "/health", "/static", "/lang")
 
 
 @app.middleware("http")
 async def require_login(request: Request, call_next):
-    """Everything but the login page needs a valid session."""
+    """Everything but the login page needs a valid session.
+
+    Before the first account exists there is nothing to sign in to, so every
+    visitor is sent to the setup page instead.
+    """
     path = request.url.path
-    if auth.enabled and not path.startswith(OPEN_PATHS):
+    if not path.startswith(OPEN_PATHS):
+        if not auth.configured:
+            return RedirectResponse("/setup", status_code=303)
         if not auth.valid(request.cookies.get(auth_module.COOKIE)):
             target = "/login"
             if path != "/":
@@ -138,7 +144,8 @@ def _render(request: Request, name: str, context: dict):
         "num": lambda v: i18n.number(v, lang),
         "ago": lambda v: i18n.ago(v, lang),
         "duration": lambda v: i18n.duration(v, lang),
-        "auth_enabled": auth.enabled,
+        "auth_enabled": auth.configured,
+        "min_password": auth_module.MIN_PASSWORD,
         "asset_version": ASSETS,
         "source_url": SOURCE_URL,
     }
@@ -427,9 +434,89 @@ async def collect(kind: str = Form("full")):
     return RedirectResponse("/settings", status_code=303)
 
 
+@app.get("/setup", response_class=HTMLResponse)
+async def setup_form(request: Request):
+    """The first account. Reachable only while there is none."""
+    if auth.configured:
+        return RedirectResponse("/login", status_code=303)
+    return _render(request, "setup.html", {"name": "", "error": None})
+
+
+@app.post("/setup")
+async def setup(request: Request, user: str = Form(""), password: str = Form(""),
+                repeat: str = Form("")):
+    if auth.configured:
+        return RedirectResponse("/login", status_code=303)
+    error = auth_module.problem(user, password, repeat)
+    if error:
+        return _render(request, "setup.html", {"name": user, "error": error})
+
+    auth.create(user, password)
+    _LOGGER.info("Account created; the dashboard is closed to everyone else now")
+    response = RedirectResponse("/", status_code=303)
+    response.set_cookie(auth_module.COOKIE, auth.issue(), max_age=auth_module.MAX_AGE,
+                        httponly=True, samesite="lax")
+    return response
+
+
+@app.get("/account", response_class=HTMLResponse)
+async def account_page(request: Request, done: str = ""):
+    return _render(request, "account.html",
+                   {"name": auth.user, "done": done, "name_error": None,
+                    "password_error": None})
+
+
+@app.post("/account/name")
+async def change_name(request: Request, user: str = Form(""), current: str = Form("")):
+    client = request.client.host if request.client else "?"
+    error = None
+    if not auth.verify(current, client):
+        error = "account.error.current"
+    elif not user.strip():
+        error = "account.error.name"
+    if error:
+        return _render(request, "account.html",
+                       {"name": auth.user, "done": "", "name_error": error,
+                        "password_error": None})
+
+    auth.set_name(user)
+    # The old name was part of the signature, so this session needs a new
+    # cookie right away — otherwise renaming would sign you out.
+    response = RedirectResponse("/account?done=name", status_code=303)
+    response.set_cookie(auth_module.COOKIE, auth.issue(), max_age=auth_module.MAX_AGE,
+                        httponly=True, samesite="lax")
+    return response
+
+
+@app.post("/account/password")
+async def change_password(request: Request, current: str = Form(""),
+                          password: str = Form(""), repeat: str = Form(""),
+                          others: str = Form("")):
+    client = request.client.host if request.client else "?"
+    error = None
+    if not auth.verify(current, client):
+        error = "account.error.current"
+    else:
+        error = auth_module.problem(auth.user, password, repeat)
+    if error:
+        return _render(request, "account.html",
+                       {"name": auth.user, "done": "", "name_error": None,
+                        "password_error": error})
+
+    auth.set_password(password)
+    if others:
+        auth.rotate_key()
+    response = RedirectResponse("/account?done=password", status_code=303)
+    response.set_cookie(auth_module.COOKIE, auth.issue(), max_age=auth_module.MAX_AGE,
+                        httponly=True, samesite="lax")
+    return response
+
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request, next: str = "/"):
-    if not auth.enabled or auth.valid(request.cookies.get(auth_module.COOKIE)):
+    if not auth.configured:
+        return RedirectResponse("/setup", status_code=303)
+    if auth.valid(request.cookies.get(auth_module.COOKIE)):
         return RedirectResponse("/", status_code=303)
     return _render(request, "login.html", {"next": next, "failed": False})
 
@@ -437,6 +524,8 @@ async def login_form(request: Request, next: str = "/"):
 @app.post("/login")
 async def login(request: Request, user: str = Form(""), password: str = Form(""),
                 next: str = Form("/")):
+    if not auth.configured:
+        return RedirectResponse("/setup", status_code=303)
     client = request.client.host if request.client else "?"
     if not auth.check(user, password, client):
         _LOGGER.warning("Failed login from %s", client)

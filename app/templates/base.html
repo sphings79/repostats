@@ -14,7 +14,7 @@
     <img class="mark" src="/static/logo.svg?v={{ asset_version }}" alt="" width="22" height="22">
     <span>Repo&nbsp;Stats</span>
   </a>
-  {% if request.url.path != '/login' %}
+  {% if request.url.path not in ('/login', '/setup') %}
   <nav>
     <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>{{ t('nav.overview') }}</a>
     <a href="/settings" {% if request.url.path == '/settings' %}class="active"{% endif %}>{{ t('nav.settings') }}</a>
@@ -24,7 +24,9 @@
     {% for code, label in languages.items() %}
       <a href="/lang/{{ code }}" {% if code == lang %}class="on"{% endif %} title="{{ label }}">{{ code | upper }}</a>
     {% endfor %}
-    {% if auth_enabled and request.url.path != '/login' %}
+    {% if auth_enabled and request.url.path not in ('/login', '/setup') %}
+      <a href="/account" class="logout {% if request.url.path == '/account' %}on{% endif %}"
+         title="{{ t('account.title') }}">{{ t('account.title') }}</a>
       <a href="/logout" class="logout" title="{{ t('login.logout') }}">{{ t('login.logout') }}</a>
     {% endif %}
   </div>

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ t('setup.title') }} · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="login">
+  <form method="post" action="/setup" class="panel">
+    <h1>{{ t('setup.title') }}</h1>
+    <p class="sub">{{ t('setup.sub') }}</p>
+
+    {% if error %}<p class="warning">{{ t(error, n=min_password) }}</p>{% endif %}
+
+    <label>
+      <span>{{ t('login.user') }}</span>
+      <input type="text" name="user" value="{{ name }}" autocomplete="username" autofocus required>
+    </label>
+    <label>
+      <span>{{ t('login.password') }}</span>
+      <input type="password" name="password" autocomplete="new-password" required>
+    </label>
+    <label>
+      <span>{{ t('account.repeat') }}</span>
+      <input type="password" name="repeat" autocomplete="new-password" required>
+    </label>
+    <button type="submit">{{ t('setup.submit') }}</button>
+  </form>
+</section>
+
+{% endblock %}
