@@ -21,6 +21,22 @@
   {% if pending %}<span class="hint">{{ t('settings.queued') }}: {{ pending }}</span>{% endif %}
 </div>
 
+<form method="post" action="/settings/display">
+  <section class="panel">
+    <h2>{{ t('settings.display') }}</h2>
+    <label class="option">
+      <input type="checkbox" name="sticky" {% if sticky %}checked{% endif %}>
+      <span>
+        {{ t('settings.sticky') }}
+        <span class="hint">{{ t('settings.sticky.note') }}</span>
+      </span>
+    </label>
+    <div class="actions">
+      <button type="submit">{{ t('settings.display.save') }}</button>
+    </div>
+  </section>
+</form>
+
 <form method="post" action="/settings">
   <section class="panel">
     <div class="panel-head">

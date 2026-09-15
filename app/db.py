@@ -120,6 +120,20 @@ CREATE TABLE IF NOT EXISTS run (
     note        TEXT
 );
 
+CREATE TABLE IF NOT EXISTS baseline (
+    scope      TEXT NOT NULL,
+    metric     TEXT NOT NULL,
+    base_value REAL NOT NULL,
+    last_value REAL NOT NULL,
+    changed_at TEXT NOT NULL,
+    PRIMARY KEY (scope, metric)
+);
+
+CREATE TABLE IF NOT EXISTS setting (
+    name  TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS daily_lookup ON daily (full_name, metric, day);
 CREATE INDEX IF NOT EXISTS snapshot_lookup ON snapshot (full_name, taken_at);
 """
@@ -176,6 +190,40 @@ class Database:
         except Exception:
             con.rollback()
             raise
+
+    # ---- what a tile looked like last time -------------------------------
+
+    def baselines(self, scope: str) -> dict[str, sqlite3.Row]:
+        """The marks for one page: the overview, or a single repository."""
+        with self.connect() as con:
+            rows = con.execute(
+                "SELECT * FROM baseline WHERE scope = ?", (scope,)).fetchall()
+        return {row["metric"]: row for row in rows}
+
+    def write_baselines(self, scope: str, marks: dict[str, tuple[float, float]]) -> None:
+        """Move the marks on: metric -> (value to compare against, value now)."""
+        now = _now()
+        with self.connect() as con:
+            con.executemany(
+                "INSERT INTO baseline (scope, metric, base_value, last_value, changed_at)"
+                " VALUES (?, ?, ?, ?, ?)"
+                " ON CONFLICT (scope, metric) DO UPDATE SET"
+                " base_value = excluded.base_value,"
+                " last_value = excluded.last_value,"
+                " changed_at = excluded.changed_at",
+                [(scope, metric, base, last, now) for metric, (base, last) in marks.items()])
+
+    def setting(self, name: str, default: str = "") -> str:
+        with self.connect() as con:
+            row = con.execute(
+                "SELECT value FROM setting WHERE name = ?", (name,)).fetchone()
+        return row["value"] if row else default
+
+    def set_setting(self, name: str, value: str) -> None:
+        with self.connect() as con:
+            con.execute("INSERT INTO setting (name, value) VALUES (?, ?)"
+                        " ON CONFLICT (name) DO UPDATE SET value = excluded.value",
+                        (name, value))
 
     # ---- writes ----------------------------------------------------------
 

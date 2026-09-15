@@ -142,6 +142,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "filter.ha.any": "alle",
         "filter.ha.yes": "Home Assistant",
         "filter.ha.no": "keine",
+        "settings.display": "Anzeige",
+        "settings.sticky": "Veränderung stehen lassen, bis sich etwas ändert",
+        "settings.sticky.note": "Aus: Die Veränderung bezieht sich auf den letzten Seitenaufruf und steht nach einem Neuladen wieder auf ±0. An: Sie bleibt stehen, bis sich die Zahl wirklich wieder bewegt.",
+        "settings.display.save": "Speichern",
         "settings.save": "Auswahl speichern",
         "settings.selected": "ausgewählt",
         "settings.runs": "Letzte Läufe",
@@ -197,6 +201,12 @@ TEXTS: dict[str, dict[str, str]] = {
         "ago.hours": "vor {n} h",
         "ago.days": "vor {n} d",
         "ago.never": "—",
+
+        "since.now": "gerade eben",
+        "since.minutes": "seit {n} min",
+        "since.hours": "seit {n} h",
+        "since.days": "seit {n} d",
+        "since.date": "seit {date}",
     },
     "en": {
         "nav.overview": "Overview",
@@ -331,6 +341,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "filter.ha.any": "any",
         "filter.ha.yes": "Home Assistant",
         "filter.ha.no": "none",
+        "settings.display": "Display",
+        "settings.sticky": "Keep a change on screen until the number moves again",
+        "settings.sticky.note": "Off: the change is measured against your last visit, so a reload puts it back to ±0. On: it stays until the number really moves again.",
+        "settings.display.save": "Save",
         "settings.save": "Save selection",
         "settings.selected": "selected",
         "settings.runs": "Recent runs",
@@ -386,6 +400,12 @@ TEXTS: dict[str, dict[str, str]] = {
         "ago.hours": "{n} h ago",
         "ago.days": "{n} d ago",
         "ago.never": "—",
+
+        "since.now": "just now",
+        "since.minutes": "{n} min ago",
+        "since.hours": "{n} h ago",
+        "since.days": "{n} d ago",
+        "since.date": "since {date}",
     },
 }
 
@@ -441,6 +461,33 @@ def ago(value: str | None, lang: str) -> str:
     if days < 30:
         return t("ago.days", n=days)
     return moment.strftime("%d.%m.%Y" if lang == "de" else "%b %-d, %Y")
+
+
+def since(value: str | None, lang: str) -> str:
+    """Like ago(), but read as a starting point: "seit 2 h", "2 h ago"."""
+    t = translator(lang)
+    if not value:
+        return ""
+    try:
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return str(value)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+
+    minutes = int((datetime.now(timezone.utc) - moment).total_seconds() // 60)
+    if minutes < 1:
+        return t("since.now")
+    if minutes < 60:
+        return t("since.minutes", n=minutes)
+    hours = minutes // 60
+    if hours < 24:
+        return t("since.hours", n=hours)
+    days = hours // 24
+    if days < 30:
+        return t("since.days", n=days)
+    return t("since.date",
+             date=moment.strftime("%d.%m.%Y" if lang == "de" else "%b %-d, %Y"))
 
 
 def duration(seconds, lang: str) -> str:

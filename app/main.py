@@ -181,6 +181,14 @@ async def overview(request: Request, days: int = 30):
         "clones_unique": sum(r["clones_unique"] for r in rows),
     }
 
+    # Only once there is something to compare; before the first run every
+    # tile would set its mark to zero and report a jump afterwards.
+    deltas = _deltas("overview", {
+        "stars": totals["stars"], "forks": totals["forks"],
+        "watchers": totals["watchers"], "downloads": totals["downloads"],
+        "installs": totals["installs"], "issues": totals["issues"],
+    }, lang) if snapshots else {}
+
     traffic = charts.area_chart([
         {"label": t("chart.views"), "rows": db.totals_series("views", days),
          "colour": "var(--accent)"},
@@ -200,6 +208,7 @@ async def overview(request: Request, days: int = 30):
         "rows": rows, "totals": totals, "traffic": traffic, "growth": growth,
         "referrers": charts.bars(db.top_referrers(), "source", "views", lang=lang),
         "days": days, "last_run": db.last_run(), "running": collector.running,
+        "deltas": deltas,
     })
 
 
@@ -260,8 +269,17 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
              "colour": "var(--accent-2)", "carry": True},
         ], days=days, lang=lang)
 
+    deltas = _deltas(full_name, {
+        "stars": snap["stars"], "forks": snap["forks"], "watchers": snap["watchers"],
+        "issues": snap["open_issues"], "prs": snap["open_prs"],
+        "downloads": snap["downloads"], "commits": snap["commits"],
+        "contributors": snap["contributors"], "releases": snap["releases"],
+        "ci_runs": snap["ci_runs"], "ci_rate": snap["ci_rate"],
+        "ci_seconds": snap["ci_seconds"], "installs": snap["ha_installs"],
+    }, lang) if snap else {}
+
     return _render(request, "repo.html", {
-        "repo": repo, "snap": snap, "days": days,
+        "repo": repo, "snap": snap, "days": days, "deltas": deltas,
         "traffic": traffic, "clones": clones, "stars": stars, "installs": installs,
         "ci": ci, "versions": versions, "hidden_versions": hidden_versions,
         "referrers": charts.bars(db.referrers(full_name), "source", "views", lang=lang),
@@ -376,6 +394,7 @@ async def settings(request: Request):
         "pending": collector.pending,
         "login": LOGIN,
         "has_token": bool(TOKEN),
+        "sticky": db.setting(STICKY, "1") == "1",
     })
 
 
@@ -383,6 +402,15 @@ async def settings(request: Request):
 async def save_settings(request: Request):
     form = await request.form()
     db.set_tracked(form.getlist("tracked"))
+    return RedirectResponse("/settings", status_code=303)
+
+
+@app.post("/settings/display")
+async def save_display(request: Request):
+    """Its own form: the one below it carries the tracked repositories, and
+    posting that without them would clear every tick."""
+    form = await request.form()
+    db.set_setting(STICKY, "1" if form.get("sticky") else "0")
     return RedirectResponse("/settings", status_code=303)
 
 
@@ -449,6 +477,73 @@ async def health():
         "running": collector.running,
         "pending": collector.pending,
     })
+
+
+# Whether a tile going up is good news. Open issues, open pull requests and a
+# longer CI run are the ones where more is worse.
+DELTA_TILES = {
+    "stars": True, "forks": True, "watchers": True, "downloads": True,
+    "installs": True, "commits": True, "contributors": True, "releases": True,
+    "ci_runs": True, "ci_rate": True,
+    "issues": False, "prs": False, "ci_seconds": False,
+}
+STICKY = "delta_sticky"
+
+
+def _deltas(scope: str, values: dict, lang: str) -> dict[str, dict]:
+    """What changed on these tiles since the page was last opened.
+
+    Every tile carries its own mark, because the numbers behind them move at
+    very different speeds. With the sticky setting on, a mark only moves when
+    the number underneath it really changed, so a reload does not wipe the
+    reading; with it off, the mark follows every visit.
+    """
+    sticky = db.setting(STICKY, "1") == "1"
+    marks = db.baselines(scope)
+    shown: dict[str, dict] = {}
+    move: dict[str, tuple[float, float]] = {}
+
+    for metric, value in values.items():
+        current = float(value or 0)
+        mark = marks.get(metric)
+        if mark is None:
+            # nothing to compare against yet, so this visit only sets the mark
+            move[metric] = (current, current)
+            continue
+
+        if sticky and current == mark["last_value"]:
+            base, when = mark["base_value"], mark["changed_at"]
+        elif sticky:
+            base, when = mark["last_value"], None
+            move[metric] = (mark["last_value"], current)
+        else:
+            base, when = mark["last_value"], mark["changed_at"]
+            move[metric] = (current, current)
+        shown[metric] = _delta(metric, current - base, when, lang)
+
+    if move:
+        db.write_baselines(scope, move)
+    return shown
+
+
+def _delta(metric: str, amount: float, when: str | None, lang: str) -> dict:
+    """Dress one difference up for the tile: text, colour, and since when."""
+    t = i18n.translator(lang)
+    if amount == 0:
+        size, mood = i18n.number(0, lang), "flat"
+    else:
+        if metric == "ci_seconds":
+            size = i18n.duration(abs(amount), lang)
+        elif metric == "ci_rate":
+            size = f"{i18n.number(abs(amount), lang)} %"
+        else:
+            size = i18n.number(abs(amount), lang)
+        rising = amount > 0
+        mood = "good" if rising == DELTA_TILES.get(metric, True) else "bad"
+    sign = "+" if amount > 0 else ("\u2212" if amount < 0 else "\u00b1")
+    # a change noticed on this very request has no earlier moment to name
+    return {"text": sign + size, "mood": mood,
+            "since": i18n.since(when, lang) if when else t("since.now")}
 
 
 def _install_total(rows) -> int:
