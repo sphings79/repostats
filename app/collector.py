@@ -30,14 +30,30 @@ class Collector:
         self.running: str | None = None
         self.pending: str | None = None
 
+    async def _refresh(self, github: GitHub) -> int:
+        """Store the repository list, following any repository that was renamed.
+
+        A row from before ids were stored has none, and a renamed repository
+        no longer shows up under its old name. GitHub redirects that name to
+        the repository though, so asking for it yields the id to match on.
+        """
+        repos = await github.repos()
+        listed = {repo["full_name"] for repo in repos}
+        for name in self.db.without_id():
+            if name in listed:
+                continue
+            found = await github.repo(name)
+            if found:
+                self.db.set_repo_id(name, found["id"])
+        for repo in repos:
+            self.db.upsert_repo(_repo_row(repo))
+        return len(repos)
+
     async def discover(self) -> int:
         """Refresh the repository list without touching any statistics."""
         github = GitHub(self.token, self.login, star_token=self.star_token)
         try:
-            repos = await github.repos()
-            for repo in repos:
-                self.db.upsert_repo(_repo_row(repo))
-            return len(repos)
+            return await self._refresh(github)
         finally:
             await github.aclose()
 
@@ -76,8 +92,7 @@ class Collector:
             github = GitHub(self.token, self.login, star_token=self.star_token)
             done, note, ok = 0, "", True
             try:
-                for repo in await github.repos():
-                    self.db.upsert_repo(_repo_row(repo))
+                await self._refresh(github)
 
                 tracked = self.db.repos(tracked_only=True)
                 installs = await ha_analytics.fetch() if kind == "full" else {}
@@ -281,6 +296,7 @@ def _normalise(version: str) -> str:
 
 def _repo_row(repo: dict) -> dict:
     return {
+        "id": repo["id"],
         "full_name": repo["full_name"],
         "name": repo["name"],
         "description": repo.get("description"),

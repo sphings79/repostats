@@ -84,6 +84,15 @@
           {% endfor %}
         </select>
       </label>
+      <label class="pick">
+        <span>{{ t('filter.topic') }}</span>
+        <select id="f-topic">
+          <option value="">{{ t('filter.topic.any') }}</option>
+          {% for topic in topics %}
+            <option value="{{ topic }}">{{ topic }}</option>
+          {% endfor %}
+        </select>
+      </label>
       <button type="button" class="ghost" id="f-reset">{{ t('settings.reset') }}</button>
     </div>
 
@@ -107,6 +116,7 @@
               data-archived="{{ 1 if repo['archived'] else 0 }}"
               data-ha="{{ 1 if repo['ha_domain'] else 0 }}"
               data-language="{{ repo['language'] or '' }}"
+              data-topics=",{{ repo['topics'] or '' }},"
               data-tracked="{{ 1 if repo['tracked'] else 0 }}">
             <td class="check">
               <input type="checkbox" name="tracked" value="{{ repo['full_name'] }}"

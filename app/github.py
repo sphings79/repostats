@@ -30,6 +30,7 @@ class GitHub:
         self._client = httpx.AsyncClient(
             base_url=API,
             timeout=timeout,
+            follow_redirects=True,   # a renamed repository answers with a 301
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github+json",

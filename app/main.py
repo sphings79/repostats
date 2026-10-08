@@ -394,8 +394,11 @@ async def set_tracked(owner: str, name: str, tracked: str = Form("0")):
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request):
+    repos = db.repos(tracked_only=False)
+    topics = sorted({t for r in repos for t in (r["topics"] or "").split(",") if t})
     return _render(request, "settings.html", {
-        "repos": db.repos(tracked_only=False),
+        "repos": repos,
+        "topics": topics,
         "runs": db.runs(),
         "running": collector.running,
         "pending": collector.pending,

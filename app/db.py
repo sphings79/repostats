@@ -14,6 +14,7 @@ from pathlib import Path
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS repo (
     full_name     TEXT PRIMARY KEY,
+    id            INTEGER,
     name          TEXT NOT NULL,
     description   TEXT,
     private       INTEGER NOT NULL DEFAULT 0,
@@ -165,6 +166,7 @@ class Database:
         existing database as well.
         """
         wanted = {
+            "repo": {"id": "INTEGER"},
             "snapshot": {
                 "ci_runs": "INTEGER", "ci_success": "INTEGER", "ci_rate": "INTEGER",
                 "ci_seconds": "INTEGER", "ci_last": "TEXT",
@@ -177,6 +179,9 @@ class Database:
                 for name, kind in columns.items():
                     if name not in have:
                         con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
+            # GitHub's id outlives a rename, the name does not. NULLs may repeat,
+            # so repositories not matched to an id yet do not collide.
+            con.execute("CREATE UNIQUE INDEX IF NOT EXISTS repo_github_id ON repo (id)")
 
     def _conn(self) -> sqlite3.Connection:
         con = getattr(_local, "con", None)
@@ -250,16 +255,28 @@ class Database:
     # ---- writes ----------------------------------------------------------
 
     def upsert_repo(self, repo: dict) -> None:
+        """Store a repository, following it if it was renamed.
+
+        The row is matched on GitHub's id first. Only a repository whose id is
+        not known yet is matched on its name, which is how rows from before
+        the id was stored pick it up.
+        """
         with self.connect() as con:
+            known = con.execute(
+                "SELECT full_name FROM repo WHERE id = ?", (repo["id"],)).fetchone()
+            if known and known["full_name"] != repo["full_name"]:
+                self._rename(con, known["full_name"], repo["full_name"])
+
             con.execute(
                 """
-                INSERT INTO repo (full_name, name, description, private, fork,
+                INSERT INTO repo (full_name, id, name, description, private, fork,
                                   archived, language, license, topics, homepage,
                                   created_at, pushed_at, last_seen)
-                VALUES (:full_name, :name, :description, :private, :fork,
+                VALUES (:full_name, :id, :name, :description, :private, :fork,
                         :archived, :language, :license, :topics, :homepage,
                         :created_at, :pushed_at, :last_seen)
                 ON CONFLICT(full_name) DO UPDATE SET
+                    id=excluded.id,
                     name=excluded.name,
                     description=excluded.description,
                     private=excluded.private,
@@ -274,6 +291,34 @@ class Database:
                 """,
                 {**repo, "last_seen": _now()},
             )
+
+    _BY_NAME = ("snapshot", "daily", "referrer", "popular_path", "release_asset",
+                "issue", "ha_version")
+
+    def _rename(self, con, old: str, new: str) -> None:
+        """Carry everything stored under the old name over to the new one.
+
+        A row already sitting under the new name is a placeholder that an
+        earlier run created when it met the repository as a stranger; the
+        history being moved wins over it.
+        """
+        con.execute("DELETE FROM repo WHERE full_name = ?", (new,))
+        for table in self._BY_NAME:
+            con.execute(f"DELETE FROM {table} WHERE full_name = ?", (new,))
+            con.execute(f"UPDATE {table} SET full_name = ? WHERE full_name = ?", (new, old))
+        con.execute("DELETE FROM baseline WHERE scope = ?", (new,))
+        con.execute("UPDATE baseline SET scope = ? WHERE scope = ?", (new, old))
+        con.execute("UPDATE repo SET full_name = ? WHERE full_name = ?", (new, old))
+
+    def without_id(self) -> list[str]:
+        """Names of the repositories GitHub's id is not known for yet."""
+        with self.connect() as con:
+            return [row["full_name"] for row in con.execute(
+                "SELECT full_name FROM repo WHERE id IS NULL")]
+
+    def set_repo_id(self, full_name: str, github_id: int) -> None:
+        with self.connect() as con:
+            con.execute("UPDATE repo SET id = ? WHERE full_name = ?", (github_id, full_name))
 
     def set_tracked(self, full_names: list[str]) -> None:
         with self.connect() as con:

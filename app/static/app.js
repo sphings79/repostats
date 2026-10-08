@@ -119,6 +119,7 @@ if (settings) {
   const state = document.getElementById("f-state");
   const ha = document.getElementById("f-ha");
   const language = document.getElementById("f-lang");
+  const topic = document.getElementById("f-topic");
 
   const matches = (row) => {
     const needle = (text.value || "").toLowerCase();
@@ -142,6 +143,7 @@ if (settings) {
     if (ha.value === "no" && row.dataset.ha === "1") return false;
 
     if (language.value && row.dataset.language !== language.value) return false;
+    if (topic.value && !row.dataset.topics.includes("," + topic.value + ",")) return false;
     return true;
   };
 
@@ -163,13 +165,13 @@ if (settings) {
       .replace("{n}", picked);
   };
 
-  [text, kind, state, ha, language].forEach((control) => {
+  [text, kind, state, ha, language, topic].forEach((control) => {
     if (control) control.addEventListener("input", apply);
   });
 
   document.getElementById("f-reset")?.addEventListener("click", () => {
     text.value = "";
-    [kind, state, ha, language].forEach((control) => {
+    [kind, state, ha, language, topic].forEach((control) => {
       control.value = "";
       // the widget in front of it listens for this
       control.dispatchEvent(new Event("input", { bubbles: true }));
