@@ -462,3 +462,19 @@ button.ghost.danger:hover { color: #ff8585; border-color: rgba(255, 107, 107, .5
 /* the licence wants the source reachable from the running service */
 footer .source { margin-left: auto; color: var(--dim); text-decoration: none; }
 footer .source:hover { color: var(--accent); }
+
+/* a failed run or a failed MQTT publish, right under the header */
+.alerts { padding: 14px clamp(16px, 4vw, 40px) 0; max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.alert {
+  display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+  background: rgba(255, 107, 107, .10); border: 1px solid rgba(255, 107, 107, .4);
+  color: #ff6b6b; padding: 10px 16px; border-radius: var(--radius); font-size: 13.5px;
+}
+.alert span { color: var(--muted); overflow-wrap: anywhere; }
+.alert a { margin-left: auto; color: #ff6b6b; }
+
+/* MQTT settings */
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 16px; margin: 14px 0; }
+.fields label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
+.fields input[type="text"], .fields input[type="password"] { width: 100%; box-sizing: border-box; }
+.mqtt-result { margin: 0 0 14px; }

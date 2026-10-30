@@ -104,6 +104,20 @@ CREATE TABLE IF NOT EXISTS issue (
     PRIMARY KEY (full_name, number)
 );
 
+CREATE TABLE IF NOT EXISTS pull_request (
+    full_name  TEXT NOT NULL,
+    number     INTEGER NOT NULL,
+    title      TEXT NOT NULL,
+    url        TEXT NOT NULL,
+    author     TEXT,
+    labels     TEXT,
+    draft      INTEGER NOT NULL DEFAULT 0,
+    is_bot     INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT,
+    updated_at TEXT,
+    PRIMARY KEY (full_name, number)
+);
+
 CREATE TABLE IF NOT EXISTS ha_version (
     full_name TEXT NOT NULL,
     version   TEXT NOT NULL,
@@ -293,7 +307,7 @@ class Database:
             )
 
     _BY_NAME = ("snapshot", "daily", "referrer", "popular_path", "release_asset",
-                "issue", "ha_version")
+                "issue", "pull_request", "ha_version")
 
     def _rename(self, con, old: str, new: str) -> None:
         """Carry everything stored under the old name over to the new one.
@@ -432,6 +446,35 @@ class Database:
             sql += " WHERE i.full_name = ?"
             params = (full_name,)
         sql += " ORDER BY i.updated_at DESC"
+        with self.connect() as con:
+            return con.execute(sql, params).fetchall()
+
+    def write_pulls(self, full_name: str, rows: list[dict]) -> None:
+        """Replace what is stored for a repository; merged and closed ones vanish."""
+        with self.connect() as con:
+            con.execute("DELETE FROM pull_request WHERE full_name = ?", (full_name,))
+            con.executemany(
+                """INSERT OR REPLACE INTO pull_request
+                   (full_name, number, title, url, author, labels, draft, is_bot,
+                    created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [(full_name, r["number"], r["title"], r["html_url"],
+                  (r.get("user") or {}).get("login"),
+                  ",".join(l["name"] for l in r.get("labels", [])),
+                  1 if r.get("draft") else 0,
+                  1 if (r.get("user") or {}).get("type") == "Bot" else 0,
+                  r.get("created_at"), r.get("updated_at"))
+                 for r in rows],
+            )
+
+    def pulls(self, full_name: str | None = None) -> list[sqlite3.Row]:
+        sql = """SELECT p.* FROM pull_request p
+                 JOIN repo r ON r.full_name = p.full_name AND r.tracked = 1"""
+        params: tuple = ()
+        if full_name:
+            sql += " WHERE p.full_name = ?"
+            params = (full_name,)
+        sql += " ORDER BY p.updated_at DESC"
         with self.connect() as con:
             return con.execute(sql, params).fetchall()
 
@@ -588,6 +631,14 @@ class Database:
         with self.connect() as con:
             return con.execute(
                 "SELECT * FROM run ORDER BY started_at DESC LIMIT 1").fetchone()
+
+    def last_finished_run(self) -> sqlite3.Row | None:
+        """The newest run that has ended, so a run in progress hides nothing."""
+        with self.connect() as con:
+            return con.execute(
+                "SELECT * FROM run WHERE finished_at IS NOT NULL"
+                " AND COALESCE(note, '') != 'interrupted'"
+                " ORDER BY started_at DESC LIMIT 1").fetchone()
 
     def runs(self, limit: int = 20) -> list[sqlite3.Row]:
         with self.connect() as con:

@@ -32,6 +32,25 @@
   </div>
 </header>
 
+{% if request.url.path not in ('/login', '/setup') and (alert_run or alert_mqtt) %}
+<div class="alerts" role="alert">
+  {% if alert_run %}
+    <div class="alert">
+      <strong>{{ t('alert.run') }}</strong>
+      <span>{{ ago(alert_run['started_at']) }}{% if alert_run['note'] %} · {{ alert_run['note'] }}{% endif %}</span>
+      <a href="/settings#runs">{{ t('alert.details') }}</a>
+    </div>
+  {% endif %}
+  {% if alert_mqtt %}
+    <div class="alert">
+      <strong>{{ t('alert.mqtt') }}</strong>
+      <span>{{ ago(alert_mqtt['at']) }}{% if alert_mqtt['error'] %} · {{ alert_mqtt['error'] }}{% endif %}</span>
+      <a href="/settings#mqtt">{{ t('alert.details') }}</a>
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <main>{% block content %}{% endblock %}</main>
 
 <footer>

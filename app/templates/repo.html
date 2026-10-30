@@ -56,7 +56,8 @@
   {{ tile(t('kpi.issues'), num(snap['open_issues'] if snap else 0), 'gold', t('hint.issues'),
           href='/issues?repo=' ~ repo['full_name'], delta=deltas.get('issues')) }}
   {{ tile(t('kpi.prs'), num(snap['open_prs'] if snap else 0), 'gold', t('hint.prs'),
-          href=gh ~ '/pulls', external=true, delta=deltas.get('prs')) }}
+          href='#pulls' if pulls else gh ~ '/pulls', external=not pulls,
+          delta=deltas.get('prs')) }}
   {{ tile(t('kpi.commits'), num(snap['commits'] if snap else 0), 'accent', t('hint.commits'),
           href=gh ~ '/commits', external=true, delta=deltas.get('commits')) }}
   {{ tile(t('kpi.contributors'), num(snap['contributors'] if snap else 0), 'accent',
@@ -124,6 +125,17 @@
   </section>
   {% endif %}
 </div>
+
+{% if pulls %}
+<section class="panel" id="pulls">
+  <div class="panel-head">
+    <h2>{{ t('repo.pulls') }}</h2>
+    <span class="hint">{{ pulls | length }}</span>
+  </div>
+  {% set rows = pulls %}
+  {% include "pull_list.html" %}
+</section>
+{% endif %}
 
 {% if ci %}
 <section class="panel" id="ci">

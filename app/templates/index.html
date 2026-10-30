@@ -31,6 +31,8 @@
           delta=deltas.get('installs')) }}
   {{ tile(t('kpi.issues'), num(totals.issues), 'gold', t('hint.issues'), href='/issues',
           delta=deltas.get('issues')) }}
+  {{ tile(t('kpi.prs'), num(totals.prs), 'gold', t('hint.prs'), href='/pulls',
+          delta=deltas.get('prs')) }}
 </section>
 
 <section class="panel">
@@ -59,6 +61,7 @@
           <th data-sort="num">★</th>
           <th data-sort="num">{{ t('kpi.forks') }}</th>
           <th data-sort="num">{{ t('col.issues') }}</th>
+          <th data-sort="num">{{ t('col.prs') }}</th>
           <th data-sort="num">{{ t('col.views') }}</th>
           <th data-sort="num">{{ t('col.clones') }}</th>
           <th data-sort="num">{{ t('col.downloads') }}</th>
@@ -81,6 +84,7 @@
           <td class="n">{{ num(row.snap['stars'] if row.snap else 0) }}</td>
           <td class="n">{{ num(row.snap['forks'] if row.snap else 0) }}</td>
           <td class="n">{{ num(row.snap['open_issues'] if row.snap else 0) }}</td>
+          <td class="n">{{ num(row.snap['open_prs'] if row.snap else 0) }}</td>
           <td class="n">{{ num(row.views) }}</td>
           <td class="n">{{ num(row.clones) }}</td>
           <td class="n">{{ num(row.snap['downloads'] if row.snap else 0) }}</td>

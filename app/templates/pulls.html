@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ t('pulls.title') }} · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <a class="back" href="/">{{ t('repo.back') }}</a>
+    <h1>{{ t('pulls.title') }}</h1>
+    <p class="sub">{{ t('pulls.sub', n=total, bots=bots) }}</p>
+  </div>
+  {% if bots %}
+  <div class="range">
+    {% set query = ('repo=' ~ (single | urlencode) ~ '&') if single else '' %}
+    {% if show_bots %}
+      <a href="?{{ query }}bots=0">{{ t('pulls.hide_bots') }}</a>
+    {% else %}
+      <a href="?{{ query }}bots=1">{{ t('pulls.show_bots') }}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+{% if not groups %}
+  <section class="panel"><p class="empty">{{ t('pulls.none') }}</p></section>
+{% endif %}
+
+{% for full_name, rows in groups %}
+<section class="panel">
+  <div class="panel-head">
+    <h2><a class="plain" href="/repo/{{ full_name }}">{{ full_name.split('/')[1] }}</a></h2>
+    <span class="hint">{{ rows | length }}</span>
+  </div>
+  {% include "pull_list.html" %}
+</section>
+{% endfor %}
+
+{% endblock %}

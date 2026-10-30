@@ -11,6 +11,7 @@ Two kinds of run:
 import asyncio
 import logging
 from collections import Counter
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime, timedelta, timezone
 
 from . import ha_analytics
@@ -29,6 +30,8 @@ class Collector:
         self._lock = asyncio.Lock()
         self.running: str | None = None
         self.pending: str | None = None
+        # Awaited after every run, successful or not; must not raise.
+        self.after_run: Callable[[], Awaitable[None]] | None = None
 
     async def _refresh(self, github: GitHub) -> int:
         """Store the repository list, following any repository that was renamed.
@@ -116,6 +119,9 @@ class Collector:
                 self.db.finish_run(started, done, ok, note)
                 self.running = None
 
+            if self.after_run is not None:
+                await self.after_run()
+
             queued, self.pending = self.pending, None
             return {"kind": kind, "repos": done, "ok": ok, "note": note}, queued
 
@@ -175,6 +181,11 @@ class Collector:
                 self.db.write_issues(full_name, await github.open_issues(full_name))
             else:
                 self.db.write_issues(full_name, [])
+
+            if values.get("open_prs"):
+                self.db.write_pulls(full_name, await github.open_pulls(full_name))
+            else:
+                self.db.write_pulls(full_name, [])
 
             domain = row["ha_domain"]
             if domain is None:

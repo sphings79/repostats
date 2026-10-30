@@ -22,7 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth as auth_module, charts, i18n
+from . import auth as auth_module, charts, i18n, mqtt as mqtt_module
 from .collector import Collector
 from .db import Database
 
@@ -64,6 +64,8 @@ QUICK_MINUTES = int(os.getenv("QUICK_RUN_MINUTES", "60"))
 db = Database(DB_PATH)
 collector = Collector(db, TOKEN, LOGIN, STAR_TOKEN)
 auth = auth_module.Auth(db)
+publisher = mqtt_module.Publisher(db, lambda rows: _install_total(rows))
+collector.after_run = publisher.publish
 
 
 async def _scheduler() -> None:
@@ -148,6 +150,8 @@ def _render(request: Request, name: str, context: dict):
         "min_password": auth_module.MIN_PASSWORD,
         "asset_version": ASSETS,
         "source_url": SOURCE_URL,
+        "alert_run": _failed_run(),
+        "alert_mqtt": _failed_mqtt(),
     }
     return templates.TemplateResponse(request, name, context)
 
@@ -180,6 +184,7 @@ async def overview(request: Request, days: int = 30):
         "forks": sum((r["snap"]["forks"] or 0) for r in rows if r["snap"]),
         "watchers": sum((r["snap"]["watchers"] or 0) for r in rows if r["snap"]),
         "issues": sum((r["snap"]["open_issues"] or 0) for r in rows if r["snap"]),
+        "prs": sum((r["snap"]["open_prs"] or 0) for r in rows if r["snap"]),
         "downloads": sum((r["snap"]["downloads"] or 0) for r in rows if r["snap"]),
         "installs": _install_total(rows),
         "views": sum(r["views"] for r in rows),
@@ -194,6 +199,7 @@ async def overview(request: Request, days: int = 30):
         "stars": totals["stars"], "forks": totals["forks"],
         "watchers": totals["watchers"], "downloads": totals["downloads"],
         "installs": totals["installs"], "issues": totals["issues"],
+        "prs": totals["prs"],
     }, lang) if snapshots else {}
 
     traffic = charts.area_chart([
@@ -292,6 +298,7 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         "referrers": charts.bars(db.referrers(full_name), "source", "views", lang=lang),
         "paths": charts.bars(db.paths(full_name), "path", "views", lang=lang),
         "assets": db.assets(full_name),
+        "pulls": db.pulls(full_name),
         "views14": _sum(db.series(full_name, "views", 14)),
         "clones14": _sum(db.series(full_name, "clones", 14)),
         "uniques14": _sum(db.series(full_name, "views_unique", 14)),
@@ -378,6 +385,27 @@ async def issues(request: Request, repo: str | None = None):
     })
 
 
+@app.get("/pulls", response_class=HTMLResponse)
+async def pulls(request: Request, repo: str | None = None, bots: int = 1):
+    """Every open pull request across the followed repositories, with links."""
+    rows = db.pulls(repo)
+    bot_count = sum(1 for r in rows if r["is_bot"])
+    if not bots:
+        rows = [r for r in rows if not r["is_bot"]]
+    per_repo: dict[str, list] = {}
+    for row in rows:
+        per_repo.setdefault(row["full_name"], []).append(row)
+
+    return _render(request, "pulls.html", {
+        "groups": sorted(per_repo.items(), key=lambda kv: (-len(kv[1]), kv[0])),
+        "total": len(rows),
+        "bots": bot_count,
+        "show_bots": bool(bots),
+        "single": repo,
+        "last_run": db.last_run(),
+    })
+
+
 @app.post("/repo/{owner}/{name}/tracked")
 async def set_tracked(owner: str, name: str, tracked: str = Form("0")):
     """Stop following a repository from its own page, or pick it up again.
@@ -392,11 +420,11 @@ async def set_tracked(owner: str, name: str, tracked: str = Form("0")):
     return RedirectResponse(f"/repo/{full_name}" if follow else "/", status_code=303)
 
 
-@app.get("/settings", response_class=HTMLResponse)
-async def settings(request: Request):
+def _settings_context(mqtt_config: dict | None = None, mqtt_test: str | None = None) -> dict:
     repos = db.repos(tracked_only=False)
     topics = sorted({t for r in repos for t in (r["topics"] or "").split(",") if t})
-    return _render(request, "settings.html", {
+    config = mqtt_config or mqtt_module.read_config(db)
+    return {
         "repos": repos,
         "topics": topics,
         "runs": db.runs(),
@@ -405,7 +433,16 @@ async def settings(request: Request):
         "login": LOGIN,
         "has_token": bool(TOKEN),
         "sticky": db.setting(STICKY, "1") == "1",
-    })
+        # the password never goes back to the browser, only whether one is set
+        "mqtt": {**config, "password": "", "has_password": bool(config["password"])},
+        "mqtt_status": publisher.status(),
+        "mqtt_test": mqtt_test,
+    }
+
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings(request: Request):
+    return _render(request, "settings.html", _settings_context())
 
 
 @app.post("/settings")
@@ -422,6 +459,60 @@ async def save_display(request: Request):
     form = await request.form()
     db.set_setting(STICKY, "1" if form.get("sticky") else "0")
     return RedirectResponse("/settings", status_code=303)
+
+
+def _mqtt_from_form(form) -> tuple[dict, str | None]:
+    """The broker settings as submitted, and what is wrong with them.
+
+    A blank password keeps the stored one; there is no way to read it back
+    out of the form, so blank cannot mean "none".
+    """
+    stored = mqtt_module.read_config(db)
+    config = {
+        "enabled": "1" if form.get("enabled") else "0",
+        "host": str(form.get("host", "")).strip(),
+        "port": str(form.get("port", "")).strip(),
+        "user": str(form.get("user", "")).strip(),
+        "password": str(form.get("password", "")) or stored["password"],
+        "base": str(form.get("base", "")).strip().strip("/"),
+        "prefix": str(form.get("prefix", "")).strip().strip("/"),
+        "tls": "1" if form.get("tls") else "0",
+        "tls_verify": "1" if form.get("tls_verify") else "0",
+    }
+    if form.get("clear_password"):
+        config["password"] = ""
+
+    problem = None
+    if not config["host"]:
+        problem = "mqtt.error.host"
+    elif not (config["port"].isdigit() and 0 < int(config["port"]) < 65536):
+        problem = "mqtt.error.port"
+    elif not config["base"] or not config["prefix"] or any(
+            c in config["base"] + config["prefix"] for c in "+#"):
+        problem = "mqtt.error.topic"
+    return config, problem
+
+
+@app.post("/settings/mqtt")
+async def save_mqtt(request: Request):
+    config, problem = _mqtt_from_form(await request.form())
+    if problem:
+        return _render(request, "settings.html",
+                       _settings_context(config, mqtt_test="!" + problem))
+    for key, value in config.items():
+        db.set_setting(f"mqtt_{key}", value)
+    # an earlier verdict says nothing about the new settings
+    db.set_setting("mqtt_ok", "")
+    if config["enabled"] == "1":
+        asyncio.create_task(publisher.publish())
+    return RedirectResponse("/settings#mqtt", status_code=303)
+
+
+@app.post("/settings/mqtt/test")
+async def test_mqtt(request: Request):
+    config, problem = _mqtt_from_form(await request.form())
+    error = "!" + problem if problem else await publisher.test(config)
+    return _render(request, "settings.html", _settings_context(config, mqtt_test=error))
 
 
 @app.post("/discover")
@@ -636,6 +727,17 @@ def _delta(metric: str, amount: float, when: str | None, lang: str) -> dict:
     # a change noticed on this very request has no earlier moment to name
     return {"text": sign + size, "mood": mood,
             "since": i18n.since(when, lang) if when else t("since.now")}
+
+
+def _failed_run():
+    """The last finished run, if it failed — for the banner at the top."""
+    run = db.last_finished_run()
+    return run if run and not run["ok"] else None
+
+
+def _failed_mqtt():
+    status = publisher.status()
+    return status if status and not status["ok"] else None
 
 
 def _install_total(rows) -> int:

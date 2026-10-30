@@ -15,6 +15,8 @@ _LOGGER = logging.getLogger(__name__)
 
 API = "https://api.github.com"
 PER_PAGE = 100
+# Seconds to wait between the three attempts at a request that got no answer.
+CONNECT_RETRY_PAUSES = (2, 5)
 
 
 class RateLimited(Exception):
@@ -68,10 +70,30 @@ class GitHub:
             )
         return self._public
 
+    async def _send(self, client: httpx.AsyncClient, path: str,
+                    params: dict | None = None,
+                    headers: dict | None = None) -> httpx.Response:
+        """One GET, tried again when the connection itself fails.
+
+        A transport error means no answer came back at all — name resolution,
+        a refused or dropped connection, a timeout. Those are worth a few more
+        tries; an HTTP error status is an answer and is left to the caller.
+        """
+        for pause in CONNECT_RETRY_PAUSES + (None,):
+            try:
+                return await client.get(path, params=params, headers=headers)
+            except httpx.TransportError as err:
+                if pause is None:
+                    raise
+                _LOGGER.warning("Request to %s failed (%s), retrying in %ss",
+                                path, err or type(err).__name__, pause)
+                await asyncio.sleep(pause)
+        raise RuntimeError("unreachable")
+
     async def _get(self, path: str, **params) -> Any:
         """One request, with a polite retry when the rate limit is hit."""
         for attempt in range(3):
-            response = await self._client.get(path, params=params or None)
+            response = await self._send(self._client, path, params or None)
 
             if response.status_code == 403 and "rate limit" not in response.text.lower():
                 # A token without this particular permission — the rest of the
@@ -151,8 +173,8 @@ class GitHub:
 
     async def commit_count(self, full_name: str) -> int:
         """Total commits on the default branch, read from the Link header."""
-        response = await self._client.get(
-            f"/repos/{full_name}/commits", params={"per_page": 1})
+        response = await self._send(
+            self._client, f"/repos/{full_name}/commits", {"per_page": 1})
         if response.status_code != 200:
             return 0
         link = response.headers.get("link", "")
@@ -197,11 +219,9 @@ class GitHub:
         headers = {"Accept": "application/vnd.github.star+json"}
 
         while len(out) < cap:
-            response = await client.get(
-                f"/repos/{full_name}/stargazers",
-                params={"per_page": PER_PAGE, "page": page},
-                headers=headers,
-            )
+            response = await self._send(
+                client, f"/repos/{full_name}/stargazers",
+                {"per_page": PER_PAGE, "page": page}, headers)
             if response.status_code in (401, 403) and client is self._client:
                 fallback = self._star_client()
                 if fallback is None:
@@ -212,11 +232,9 @@ class GitHub:
                         "star.")
                     break
                 client = fallback
-                response = await client.get(
-                    f"/repos/{full_name}/stargazers",
-                    params={"per_page": PER_PAGE, "page": page},
-                    headers=headers,
-                )
+                response = await self._send(
+                    client, f"/repos/{full_name}/stargazers",
+                    {"per_page": PER_PAGE, "page": page}, headers)
             if response.status_code != 200:
                 if page == 1:
                     _LOGGER.info(
@@ -240,6 +258,9 @@ class GitHub:
         """Open issues without the pull requests GitHub mixes in."""
         rows = await self._paged(f"/repos/{full_name}/issues", state="open")
         return [r for r in rows if "pull_request" not in r]
+
+    async def open_pulls(self, full_name: str) -> list[dict]:
+        return await self._paged(f"/repos/{full_name}/pulls", state="open")
 
     async def workflow_runs(self, full_name: str, limit: int = 100) -> list[dict]:
         """The most recent workflow runs, for the CI figures."""

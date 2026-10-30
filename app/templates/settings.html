@@ -146,7 +146,71 @@
   </section>
 </form>
 
-<section class="panel">
+<form method="post" action="/settings/mqtt">
+  <section class="panel" id="mqtt">
+    <h2>{{ t('settings.mqtt') }}</h2>
+    <p class="hint">{{ t('settings.mqtt.sub') }}</p>
+
+    {% if mqtt_test is not none %}
+      {% if mqtt_test == '' %}
+        <p class="mqtt-result ok">{{ t('mqtt.test.ok') }}</p>
+      {% elif mqtt_test.startswith('!') %}
+        <p class="mqtt-result bad">{{ t(mqtt_test[1:]) }}</p>
+      {% else %}
+        <p class="mqtt-result bad">{{ t('mqtt.test.failed') }}: {{ mqtt_test }}</p>
+      {% endif %}
+    {% elif mqtt_status %}
+      <p class="mqtt-result {{ 'ok' if mqtt_status.ok else 'bad' }}">
+        {{ t('mqtt.status.ok') if mqtt_status.ok else t('mqtt.status.failed') }}
+        {{ ago(mqtt_status.at) }}{% if mqtt_status.error %} · {{ mqtt_status.error }}{% endif %}
+      </p>
+    {% endif %}
+
+    <label class="option">
+      <input type="checkbox" name="enabled" {% if mqtt.enabled == '1' %}checked{% endif %}>
+      <span>{{ t('mqtt.enabled') }}</span>
+    </label>
+
+    <div class="fields">
+      <label>{{ t('mqtt.host') }}
+        <input type="text" name="host" value="{{ mqtt.host }}" autocomplete="off"></label>
+      <label>{{ t('mqtt.port') }}
+        <input type="text" name="port" value="{{ mqtt.port }}" inputmode="numeric" autocomplete="off"></label>
+      <label>{{ t('mqtt.user') }}
+        <input type="text" name="user" value="{{ mqtt.user }}" autocomplete="off"></label>
+      <label>{{ t('mqtt.password') }}
+        <input type="password" name="password" value="" autocomplete="new-password"
+               placeholder="{{ t('mqtt.password.set') if mqtt.has_password else '' }}"></label>
+      <label>{{ t('mqtt.base') }}
+        <input type="text" name="base" value="{{ mqtt.base }}" autocomplete="off"></label>
+      <label>{{ t('mqtt.prefix') }}
+        <input type="text" name="prefix" value="{{ mqtt.prefix }}" autocomplete="off"></label>
+    </div>
+
+    {% if mqtt.has_password %}
+    <label class="option">
+      <input type="checkbox" name="clear_password">
+      <span>{{ t('mqtt.password.clear') }}</span>
+    </label>
+    {% endif %}
+    <label class="option">
+      <input type="checkbox" name="tls" {% if mqtt.tls == '1' %}checked{% endif %}>
+      <span>{{ t('mqtt.tls') }}</span>
+    </label>
+    <label class="option">
+      <input type="checkbox" name="tls_verify" {% if mqtt.tls_verify == '1' %}checked{% endif %}>
+      <span>{{ t('mqtt.tls_verify') }}</span>
+    </label>
+    <p class="hint">{{ t('mqtt.note') }}</p>
+
+    <div class="actions">
+      <button type="submit">{{ t('mqtt.save') }}</button>
+      <button type="submit" class="ghost" formaction="/settings/mqtt/test">{{ t('mqtt.test') }}</button>
+    </div>
+  </section>
+</form>
+
+<section class="panel" id="runs">
   <h2>{{ t('settings.runs') }}</h2>
   <div class="table-wrap">
     <table class="repos">

@@ -1,0 +1,19 @@
+<ul class="issues">
+  {% for pr in rows %}
+    <li>
+      <a class="issue-title" href="{{ pr['url'] }}" target="_blank" rel="noreferrer">
+        <span class="num">#{{ pr['number'] }}</span>{{ pr['title'] }}
+      </a>
+      <div class="issue-meta">
+        {% if pr['draft'] %}<span class="tag warn">{{ t('pulls.draft') }}</span>{% endif %}
+        {% if pr['is_bot'] %}<span class="tag">{{ t('pulls.bot') }}</span>{% endif %}
+        {% if pr['labels'] %}
+          {% for label in pr['labels'].split(',') %}<span class="tag">{{ label }}</span>{% endfor %}
+        {% endif %}
+        <span>{{ t('issues.opened') }} {{ ago(pr['created_at']) }}</span>
+        <span>{{ t('issues.updated') }} {{ ago(pr['updated_at']) }}</span>
+        {% if pr['author'] %}<span>@{{ pr['author'] }}</span>{% endif %}
+      </div>
+    </li>
+  {% endfor %}
+</ul>
