@@ -124,6 +124,17 @@ if (settings) {
   const ha = document.getElementById("f-ha");
   const language = document.getElementById("f-lang");
   const topic = document.getElementById("f-topic");
+  const pageSize = document.getElementById("page-size");
+  const pageInfo = document.getElementById("page-info");
+  const prev = document.getElementById("page-prev");
+  const next = document.getElementById("page-next");
+  let page = 1;
+
+  // the page size is remembered per browser; the page itself is not
+  try {
+    const saved = window.localStorage.getItem("repostats.pageSize");
+    if (saved !== null && [...pageSize.options].some((o) => o.value === saved)) pageSize.value = saved;
+  } catch (_) { /* private mode: the default stays */ }
 
   const matches = (row) => {
     const needle = (text.value || "").toLowerCase();
@@ -151,13 +162,30 @@ if (settings) {
     return true;
   };
 
+  // What the filters let through is one thing, what fits on the page another:
+  // the selection actions below work on everything the filters let through.
   const apply = () => {
-    let shown = 0;
+    const matched = [];
     rows().forEach((row) => {
       const ok = matches(row);
-      row.hidden = !ok;
-      if (ok) shown += 1;
+      row.dataset.match = ok ? "1" : "0";
+      row.hidden = true;
+      if (ok) matched.push(row);
     });
+    const shown = matched.length;
+    const size = parseInt(pageSize.value, 10) || 0;
+    const pages = size ? Math.max(1, Math.ceil(shown / size)) : 1;
+    page = Math.min(Math.max(page, 1), pages);
+    const start = size ? (page - 1) * size : 0;
+    const end = size ? start + size : shown;
+    matched.slice(start, end).forEach((row) => { row.hidden = false; });
+    if (pageInfo) {
+      pageInfo.textContent = pageInfo.dataset.template
+        .replace("{a}", shown ? start + 1 : 0).replace("{b}", Math.min(end, shown))
+        .replace("{n}", shown).replace("{page}", page).replace("{pages}", pages);
+    }
+    if (prev) prev.disabled = page <= 1;
+    if (next) next.disabled = page >= pages;
     const all = rows().length;
     const picked = boxes().filter((box) => box.checked).length;
     if (visible) {
@@ -169,9 +197,18 @@ if (settings) {
       .replace("{n}", picked);
   };
 
+  // a new filter starts on the first page again
   [text, kind, state, ha, language, topic].forEach((control) => {
-    if (control) control.addEventListener("input", apply);
+    if (control) control.addEventListener("input", () => { page = 1; apply(); });
   });
+
+  pageSize.addEventListener("input", () => {
+    page = 1;
+    try { window.localStorage.setItem("repostats.pageSize", pageSize.value); } catch (_) { /* fine */ }
+    apply();
+  });
+  prev.addEventListener("click", () => { page -= 1; apply(); });
+  next.addEventListener("click", () => { page += 1; apply(); });
 
   document.getElementById("f-reset")?.addEventListener("click", () => {
     text.value = "";
@@ -187,7 +224,7 @@ if (settings) {
     button.addEventListener("click", () => {
       const mode = button.dataset.select;
       rows().forEach((row) => {
-        if (row.hidden) return;
+        if (row.dataset.match !== "1") return;
         const box = row.querySelector('input[type="checkbox"]');
         if (!box) return;
         if (mode === "check") box.checked = true;
