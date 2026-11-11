@@ -91,6 +91,17 @@ CREATE TABLE IF NOT EXISTS release_asset (
     PRIMARY KEY (full_name, tag, asset)
 );
 
+-- One row whenever a file's download count changes, so a change can be
+-- measured against any earlier moment without keeping a row per run.
+CREATE TABLE IF NOT EXISTS release_asset_history (
+    full_name  TEXT NOT NULL,
+    tag        TEXT NOT NULL,
+    asset      TEXT NOT NULL,
+    taken_at   TEXT NOT NULL,
+    downloads  INTEGER NOT NULL,
+    PRIMARY KEY (full_name, tag, asset, taken_at)
+);
+
 CREATE TABLE IF NOT EXISTS issue (
     full_name  TEXT NOT NULL,
     number     INTEGER NOT NULL,
@@ -181,6 +192,7 @@ class Database:
         """
         wanted = {
             "repo": {"id": "INTEGER"},
+            "baseline": {"base_at": "TEXT"},
             "snapshot": {
                 "ci_runs": "INTEGER", "ci_success": "INTEGER", "ci_rate": "INTEGER",
                 "ci_seconds": "INTEGER", "ci_last": "TEXT",
@@ -242,17 +254,24 @@ class Database:
         return {row["metric"]: row for row in rows}
 
     def write_baselines(self, scope: str, marks: dict[str, tuple[float, float]]) -> None:
-        """Move the marks on: metric -> (value to compare against, value now)."""
+        """Move the marks on: metric -> (value to compare against, value now).
+
+        base_at is the moment the comparison value stood: when the mark moves
+        on, that is when the previous value was recorded.
+        """
         now = _now()
         with self.connect() as con:
             con.executemany(
-                "INSERT INTO baseline (scope, metric, base_value, last_value, changed_at)"
-                " VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO baseline (scope, metric, base_value, last_value, changed_at, base_at)"
+                " VALUES (?, ?, ?, ?, ?, ?)"
                 " ON CONFLICT (scope, metric) DO UPDATE SET"
+                " base_at = CASE WHEN excluded.base_value != excluded.last_value"
+                "                THEN baseline.changed_at ELSE excluded.changed_at END,"
                 " base_value = excluded.base_value,"
                 " last_value = excluded.last_value,"
                 " changed_at = excluded.changed_at",
-                [(scope, metric, base, last, now) for metric, (base, last) in marks.items()])
+                [(scope, metric, base, last, now, now)
+                 for metric, (base, last) in marks.items()])
 
     def setting(self, name: str, default: str = "") -> str:
         with self.connect() as con:
@@ -307,7 +326,7 @@ class Database:
             )
 
     _BY_NAME = ("snapshot", "daily", "referrer", "popular_path", "release_asset",
-                "issue", "pull_request", "ha_version")
+                "issue", "pull_request", "ha_version", "release_asset_history")
 
     def _rename(self, con, old: str, new: str) -> None:
         """Carry everything stored under the old name over to the new one.
@@ -400,12 +419,59 @@ class Database:
 
     def write_assets(self, full_name: str, rows: list[tuple]) -> None:
         with self.connect() as con:
+            # The value stored before this run is what the history starts from
+            # for files that predate it, stamped with when it was last seen.
+            seen = con.execute(
+                "SELECT MAX(taken_at) AS t FROM snapshot WHERE full_name = ?",
+                (full_name,)).fetchone()["t"] or _now()
+            before = {(r["tag"], r["asset"]): r["downloads"] for r in con.execute(
+                "SELECT tag, asset, downloads FROM release_asset WHERE full_name = ?",
+                (full_name,))}
+            last = {(r["tag"], r["asset"]): r["downloads"] for r in con.execute(
+                """SELECT h.tag, h.asset, h.downloads FROM release_asset_history h
+                   JOIN (SELECT tag, asset, MAX(taken_at) AS t FROM release_asset_history
+                         WHERE full_name = ? GROUP BY tag, asset) m
+                     ON m.tag = h.tag AND m.asset = h.asset AND m.t = h.taken_at
+                   WHERE h.full_name = ?""", (full_name, full_name))}
+            now = _now()
+            history = []
+            for tag, asset, downloads, _published in rows:
+                key = (tag, asset)
+                if key not in last and key in before:
+                    history.append((full_name, tag, asset, seen, before[key]))
+                    last[key] = before[key]
+                if last.get(key) != downloads:
+                    history.append((full_name, tag, asset, now, downloads))
+            con.executemany(
+                "INSERT OR REPLACE INTO release_asset_history VALUES (?, ?, ?, ?, ?)",
+                history)
             con.executemany(
                 """INSERT OR REPLACE INTO release_asset
                    (full_name, tag, asset, downloads, published)
                    VALUES (?, ?, ?, ?, ?)""",
                 [(full_name, *r) for r in rows],
             )
+
+    def assets_at(self, moment: str, full_name: str | None = None) -> dict[tuple, int]:
+        """Download count of every release file as it stood at a moment.
+
+        Files without a recorded value at or before it are missing from the
+        result; the history only goes back as far as it has been kept.
+        """
+        sql = """SELECT h.full_name, h.tag, h.asset, h.downloads
+                 FROM release_asset_history h
+                 JOIN (SELECT full_name, tag, asset, MAX(taken_at) AS t
+                       FROM release_asset_history WHERE taken_at <= ?{where}
+                       GROUP BY full_name, tag, asset) m
+                   ON m.full_name = h.full_name AND m.tag = h.tag
+                  AND m.asset = h.asset AND m.t = h.taken_at"""
+        params: tuple = (moment,)
+        where = ""
+        if full_name:
+            where, params = " AND full_name = ?", (moment, full_name)
+        with self.connect() as con:
+            rows = con.execute(sql.format(where=where), params).fetchall()
+        return {(r["full_name"], r["tag"], r["asset"]): r["downloads"] for r in rows}
 
     def write_ha_versions(self, full_name: str, rows: list[tuple[str, int, bool]]) -> None:
         with self.connect() as con:
@@ -523,6 +589,29 @@ class Database:
             return con.execute(
                 "SELECT * FROM snapshot WHERE full_name = ? ORDER BY taken_at DESC LIMIT 1",
                 (full_name,)).fetchone()
+
+    def snapshot_at(self, full_name: str, moment: str) -> sqlite3.Row | None:
+        """The last snapshot at or before a moment, or the first one there is."""
+        with self.connect() as con:
+            return (con.execute(
+                "SELECT * FROM snapshot WHERE full_name = ? AND taken_at <= ?"
+                " ORDER BY taken_at DESC LIMIT 1", (full_name, moment)).fetchone()
+                or con.execute(
+                "SELECT * FROM snapshot WHERE full_name = ? ORDER BY taken_at LIMIT 1",
+                (full_name,)).fetchone())
+
+    def snapshots_at(self, moment: str) -> dict[str, sqlite3.Row]:
+        """snapshot_at() for every repository at once."""
+        with self.connect() as con:
+            rows = con.execute("""
+                SELECT s.* FROM snapshot s
+                JOIN (SELECT full_name,
+                             COALESCE(MAX(CASE WHEN taken_at <= :m THEN taken_at END),
+                                      MIN(taken_at)) AS t
+                      FROM snapshot GROUP BY full_name) m
+                  ON s.full_name = m.full_name AND s.taken_at = m.t
+            """, {"m": moment}).fetchall()
+        return {r["full_name"]: r for r in rows}
 
     def latest_snapshots(self) -> dict[str, sqlite3.Row]:
         with self.connect() as con:

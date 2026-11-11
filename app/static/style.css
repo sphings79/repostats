@@ -315,6 +315,9 @@ td.name label { cursor: pointer; font-weight: 600; }
 .kpi-delta.bad  { color: #ff6b6b; }
 .kpi-delta.flat { color: var(--dim); }
 .kpi-since { color: var(--dim); font-size: 11px; }
+.hero-delta { margin: 8px 0 0; display: flex; gap: 10px; align-items: baseline; }
+.hero-delta .kpi-delta { font-size: 15px; }
+.hero-delta .kpi-since { font-size: 12.5px; }
 
 .hint-box {
   position: absolute; top: calc(100% + 8px); left: 0; z-index: 40;
@@ -511,3 +514,13 @@ footer .source:hover { color: var(--accent); }
   .only-mobile { display: block; }
   .hide-mobile { display: none; }
 }
+
+/* small change next to a number in a table or a bar */
+.chg { margin-left: 6px; font: 600 11px var(--mono); }
+.chg.good { color: var(--accent-2); }
+.chg.bad  { color: #ff6b6b; }
+.chg.flat { color: var(--dim); }
+table.repos td .dash { color: var(--dim); }
+
+/* a stacked setting: label, control and note under each other */
+.stack { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 14px 0; }

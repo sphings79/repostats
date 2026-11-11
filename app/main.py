@@ -14,7 +14,7 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
@@ -180,13 +180,7 @@ async def overview(request: Request, days: int = 30):
 
     totals = {
         "repos": len(repos),
-        "stars": sum((r["snap"]["stars"] or 0) for r in rows if r["snap"]),
-        "forks": sum((r["snap"]["forks"] or 0) for r in rows if r["snap"]),
-        "watchers": sum((r["snap"]["watchers"] or 0) for r in rows if r["snap"]),
-        "issues": sum((r["snap"]["open_issues"] or 0) for r in rows if r["snap"]),
-        "prs": sum((r["snap"]["open_prs"] or 0) for r in rows if r["snap"]),
-        "downloads": sum((r["snap"]["downloads"] or 0) for r in rows if r["snap"]),
-        "installs": _install_total(rows),
+        **_tile_values(rows),
         "views": sum(r["views"] for r in rows),
         "clones": sum(r["clones"] for r in rows),
         "views_unique": sum(r["views_unique"] for r in rows),
@@ -195,12 +189,11 @@ async def overview(request: Request, days: int = 30):
 
     # Only once there is something to compare; before the first run every
     # tile would set its mark to zero and report a jump afterwards.
-    deltas = _deltas("overview", {
-        "stars": totals["stars"], "forks": totals["forks"],
-        "watchers": totals["watchers"], "downloads": totals["downloads"],
-        "installs": totals["installs"], "issues": totals["issues"],
-        "prs": totals["prs"],
-    }, lang) if snapshots else {}
+    deltas = _deltas(
+        "overview", _tile_values(rows), lang,
+        past=lambda moment: _overview_at(repos, moment),
+    ) if snapshots else {}
+    changes = _repo_changes(deltas, snapshots, lang, CHANGE_COLUMNS)
 
     traffic = charts.area_chart([
         {"label": t("chart.views"), "rows": db.totals_series("views", days),
@@ -221,7 +214,7 @@ async def overview(request: Request, days: int = 30):
         "rows": rows, "totals": totals, "traffic": traffic, "growth": growth,
         "referrers": charts.bars(db.top_referrers(), "source", "views", lang=lang),
         "days": days, "last_run": db.last_run(), "running": collector.running,
-        "deltas": deltas,
+        "deltas": deltas, "changes": changes,
     })
 
 
@@ -282,14 +275,11 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
              "colour": "var(--accent-2)", "carry": True},
         ], days=days, lang=lang)
 
-    deltas = _deltas(full_name, {
-        "stars": snap["stars"], "forks": snap["forks"], "watchers": snap["watchers"],
-        "issues": snap["open_issues"], "prs": snap["open_prs"],
-        "downloads": snap["downloads"], "commits": snap["commits"],
-        "contributors": snap["contributors"], "releases": snap["releases"],
-        "ci_runs": snap["ci_runs"], "ci_rate": snap["ci_rate"],
-        "ci_seconds": snap["ci_seconds"], "installs": snap["ha_installs"],
-    }, lang) if snap else {}
+    deltas = _deltas(
+        full_name, _repo_values(snap), lang,
+        past=lambda moment: _repo_at(full_name, moment),
+    ) if snap else {}
+    assets = db.assets(full_name)
 
     return _render(request, "repo.html", {
         "repo": repo, "snap": snap, "days": days, "deltas": deltas,
@@ -297,7 +287,8 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         "ci": ci, "versions": versions, "hidden_versions": hidden_versions,
         "referrers": charts.bars(db.referrers(full_name), "source", "views", lang=lang),
         "paths": charts.bars(db.paths(full_name), "path", "views", lang=lang),
-        "assets": db.assets(full_name),
+        "assets": assets,
+        "asset_changes": _asset_changes(assets, deltas, lang),
         "pulls": db.pulls(full_name),
         "views14": _sum(db.series(full_name, "views", 14)),
         "clones14": _sum(db.series(full_name, "clones", 14)),
@@ -308,11 +299,11 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
 
 # Which repository column or daily metric sits behind each tile.
 BREAKDOWN = {
-    "stars":     {"column": "stars",     "title": "kpi.stars"},
-    "forks":     {"column": "forks",     "title": "kpi.forks"},
-    "watchers":  {"column": "watchers",  "title": "kpi.watchers"},
-    "downloads": {"column": "downloads", "title": "kpi.downloads"},
-    "installs":  {"column": "ha_installs", "title": "kpi.installs.long"},
+    "stars":     {"column": "stars",     "title": "kpi.stars", "delta": True},
+    "forks":     {"column": "forks",     "title": "kpi.forks", "delta": True},
+    "watchers":  {"column": "watchers",  "title": "kpi.watchers", "delta": True},
+    "downloads": {"column": "downloads", "title": "kpi.downloads", "delta": True},
+    "installs":  {"column": "ha_installs", "title": "kpi.installs.long", "delta": True},
     "views":     {"daily": "views", "unique": "views_unique", "title": "kpi.visitors"},
     "clones":    {"daily": "clones", "unique": "clones_unique", "title": "kpi.cloners"},
 }
@@ -360,8 +351,22 @@ async def breakdown(request: Request, metric: str, days: int = 14):
                 seen.add(domain)
         total = sum(r["value"] for r in rows if not r["muted"])
 
+    # The same change the tile on the overview shows, measured against the
+    # same mark. The overview counts every followed repository, so the
+    # number compared is that total, not the narrowed one listed here.
+    delta, changes, asset_changes = None, {}, None
+    if spec.get("delta") and snapshots:
+        everyone = [{"repo": r, "snap": snapshots.get(r["full_name"])} for r in repos]
+        deltas = _deltas("overview", _tile_values(everyone), lang, commit=False,
+                         past=lambda moment: _overview_at(repos, moment))
+        delta = deltas.get(metric)
+        changes = _repo_changes(deltas, snapshots, lang, [metric])
+        if metric == "downloads":
+            asset_changes = _asset_changes(db.assets(None), deltas, lang)
+
     return _render(request, "top.html", {
-        "metric": metric, "rows": rows, "total": total,
+        "metric": metric, "rows": rows, "total": total, "delta": delta,
+        "changes": changes, "asset_changes": asset_changes,
         "second_total": second_total, "days": days,
         "title": t(spec["title"]), "note": note,
         "assets": db.assets(None) if metric == "downloads" else None,
@@ -433,6 +438,9 @@ def _settings_context(mqtt_config: dict | None = None, mqtt_test: str | None = N
         "login": LOGIN,
         "has_token": bool(TOKEN),
         "sticky": db.setting(STICKY, "1") == "1",
+        "delta_show": db.setting(SHOW, "1") == "1",
+        "delta_mode": db.setting(MODE, "visit"),
+        "delta_modes": MODES,
         # the password never goes back to the browser, only whether one is set
         "mqtt": {**config, "password": "", "has_password": bool(config["password"])},
         "mqtt_status": publisher.status(),
@@ -458,6 +466,9 @@ async def save_display(request: Request):
     posting that without them would clear every tick."""
     form = await request.form()
     db.set_setting(STICKY, "1" if form.get("sticky") else "0")
+    db.set_setting(SHOW, "1" if form.get("show") else "0")
+    mode = str(form.get("mode") or "visit")
+    db.set_setting(MODE, mode if mode in MODES else "visit")
     return RedirectResponse("/settings", status_code=303)
 
 
@@ -671,16 +682,90 @@ DELTA_TILES = {
     "issues": False, "prs": False, "ci_seconds": False,
 }
 STICKY = "delta_sticky"
+SHOW = "delta_show"
+MODE = "delta_mode"
+# what "since" can be measured against, other than the last visit
+PERIODS = {"24h": 24, "7d": 24 * 7, "30d": 24 * 30}
+MODES = ("visit", *PERIODS)
+
+# snapshot column behind each tile that can be broken down per repository
+CHANGE_COLUMNS = {"stars": "stars", "forks": "forks", "watchers": "watchers",
+                  "issues": "open_issues", "prs": "open_prs",
+                  "downloads": "downloads", "installs": "ha_installs"}
 
 
-def _deltas(scope: str, values: dict, lang: str) -> dict[str, dict]:
-    """What changed on these tiles since the page was last opened.
+def _tile_values(rows) -> dict:
+    """The overview tiles, from rows of {"repo", "snap"}."""
+    have = [r["snap"] for r in rows if r["snap"]]
+    total = lambda column: sum((s[column] or 0) for s in have)
+    return {
+        "stars": total("stars"), "forks": total("forks"),
+        "watchers": total("watchers"), "issues": total("open_issues"),
+        "prs": total("open_prs"), "downloads": total("downloads"),
+        "installs": _install_total(rows),
+    }
 
-    Every tile carries its own mark, because the numbers behind them move at
-    very different speeds. With the sticky setting on, a mark only moves when
-    the number underneath it really changed, so a reload does not wipe the
+
+def _repo_values(snap) -> dict:
+    return {
+        "stars": snap["stars"], "forks": snap["forks"], "watchers": snap["watchers"],
+        "issues": snap["open_issues"], "prs": snap["open_prs"],
+        "downloads": snap["downloads"], "commits": snap["commits"],
+        "contributors": snap["contributors"], "releases": snap["releases"],
+        "ci_runs": snap["ci_runs"], "ci_rate": snap["ci_rate"],
+        "ci_seconds": snap["ci_seconds"], "installs": snap["ha_installs"],
+    }
+
+
+def _overview_at(repos, moment: str):
+    """The overview tiles as they stood at a moment, and the moment actually
+    used: a repository with no history that far back falls back to its first
+    snapshot, and the comparison can only start there."""
+    old = db.snapshots_at(moment)
+    rows = [{"repo": r, "snap": old.get(r["full_name"])} for r in repos]
+    used = max([moment] + [s["taken_at"] for s in old.values()
+                           if s["taken_at"] > moment], default=moment)
+    return _tile_values(rows), used
+
+
+def _repo_at(full_name: str, moment: str):
+    old = db.snapshot_at(full_name, moment)
+    if not old:
+        return None, moment
+    return _repo_values(old), max(moment, old["taken_at"])
+
+
+def _deltas(scope: str, values: dict, lang: str, commit: bool = True,
+            past=None) -> dict[str, dict]:
+    """What changed on these tiles, against whatever the settings say.
+
+    Against a fixed period the answer comes straight from the stored history
+    through `past`, which has no side effects. Against the last visit every
+    tile carries its own mark, because the numbers behind them move at very
+    different speeds. With the sticky setting on, a mark only moves when the
+    number underneath it really changed, so a reload does not wipe the
     reading; with it off, the mark follows every visit.
+
+    A detail page passes commit=False: it reads the same marks the overview
+    uses, but must not move them, or the overview would lose its reading.
+
+    Each result also carries "ref", the moment it is measured against, for the
+    breakdowns underneath.
     """
+    if db.setting(SHOW, "1") != "1":
+        return {}
+
+    mode = db.setting(MODE, "visit")
+    if mode in PERIODS and past:
+        moment = (datetime.now(timezone.utc) - timedelta(hours=PERIODS[mode])
+                  ).isoformat(timespec="seconds")
+        old, ref = past(moment)
+        if old is None:
+            return {}
+        return {metric: {**_delta(metric, float(value or 0) - float(old.get(metric) or 0),
+                                  ref, lang), "ref": ref}
+                for metric, value in values.items() if metric in old}
+
     sticky = db.setting(STICKY, "1") == "1"
     marks = db.baselines(scope)
     shown: dict[str, dict] = {}
@@ -696,17 +781,61 @@ def _deltas(scope: str, values: dict, lang: str) -> dict[str, dict]:
 
         if sticky and current == mark["last_value"]:
             base, when = mark["base_value"], mark["changed_at"]
+            ref = mark["base_at"] or mark["changed_at"]
         elif sticky:
-            base, when = mark["last_value"], None
+            base, when, ref = mark["last_value"], None, mark["changed_at"]
             move[metric] = (mark["last_value"], current)
         else:
-            base, when = mark["last_value"], mark["changed_at"]
+            base, when, ref = mark["last_value"], mark["changed_at"], mark["changed_at"]
             move[metric] = (current, current)
-        shown[metric] = _delta(metric, current - base, when, lang)
+        shown[metric] = {**_delta(metric, current - base, when, lang), "ref": ref}
 
-    if move:
+    if move and commit:
         db.write_baselines(scope, move)
     return shown
+
+
+def _repo_changes(deltas: dict, snapshots: dict, lang: str, metrics) -> dict:
+    """Per repository: how much each number moved over the same span as the
+    tile above it. Only what really moved is listed."""
+    found: dict[str, dict[str, dict]] = {}
+    for metric in metrics:
+        ref = (deltas.get(metric) or {}).get("ref")
+        if not ref:
+            continue
+        column = CHANGE_COLUMNS[metric]
+        old = db.snapshots_at(ref)
+        for name, snap in snapshots.items():
+            before = old.get(name)
+            if not snap or not before:
+                continue
+            amount = (snap[column] or 0) - (before[column] or 0)
+            if amount:
+                found.setdefault(name, {})[metric] = _delta(metric, amount, None, lang)
+    return found
+
+
+def _asset_changes(assets, deltas: dict, lang: str) -> dict | None:
+    """Per release file: how many downloads came in over the same span as the
+    downloads tile. None when changes are switched off; a file with no value
+    recorded back then maps to None, which the table shows as a dash."""
+    if db.setting(SHOW, "1") != "1":
+        return None
+    ref = (deltas.get("downloads") or {}).get("ref")
+    if not ref or not assets:
+        return {}
+    old = db.assets_at(ref)
+    found: dict[tuple, dict | None] = {}
+    for a in assets:
+        key = (a["full_name"], a["tag"], a["asset"])
+        if key in old:
+            found[key] = _delta("downloads", a["downloads"] - old[key], None, lang)
+        elif a["published"] and a["published"] > ref:
+            # uploaded after the moment in question: all of it is new
+            found[key] = _delta("downloads", a["downloads"], None, lang)
+        else:
+            found[key] = None
+    return found
 
 
 def _delta(metric: str, amount: float, when: str | None, lang: str) -> dict:
@@ -725,7 +854,7 @@ def _delta(metric: str, amount: float, when: str | None, lang: str) -> dict:
         mood = "good" if rising == DELTA_TILES.get(metric, True) else "bad"
     sign = "+" if amount > 0 else ("\u2212" if amount < 0 else "\u00b1")
     # a change noticed on this very request has no earlier moment to name
-    return {"text": sign + size, "mood": mood,
+    return {"text": sign + size, "mood": mood, "value": amount,
             "since": i18n.since(when, lang) if when else t("since.now")}
 
 

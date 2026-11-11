@@ -1,3 +1,12 @@
+{# a small "+2" next to a number, for what moved in one repository #}
+{% macro chg(changes, name, metric) %}{% set c = changes.get(name, {}).get(metric) %}{% if c %}<small class="chg {{ c.mood }}">{{ c.text }}</small>{% endif %}{% endmacro %}
+
+{# one cell of the release-file tables: sorts by the amount, a dash if unknown #}
+{% macro asset_change(c) %}
+  {% if c %}<td class="n" data-v="{{ c.value }}"><span class="kpi-delta {{ c.mood }}">{{ c.text }}</span></td>
+  {% else %}<td class="n" data-v="-1"><span class="dash">—</span></td>{% endif %}
+{% endmacro %}
+
 {% macro tile(label, value, tone, hint=None, sub=None, href=None, external=false, delta=None) %}
 <article class="kpi {{ tone }}{% if hint %} has-hint{% endif %}{% if href %} linked{% endif %}">
   {% if hint %}

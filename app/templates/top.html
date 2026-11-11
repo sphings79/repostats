@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "kpi.html" import chg, asset_change %}
 {% block title %}{{ title }} · Repo Stats{% endblock %}
 {% block content %}
 
@@ -11,6 +12,12 @@
       {% if second_total %}· {{ t('top.of_raw', n=num(second_total)) }}{% endif %}
       · {{ t('top.across', n=rows | length) }}
     </p>
+    {% if delta %}
+      <p class="hero-delta">
+        <span class="kpi-delta {{ delta.mood }}">{{ delta.text }}</span>
+        <span class="kpi-since">{{ delta.since }}</span>
+      </p>
+    {% endif %}
   </div>
 </section>
 
@@ -36,7 +43,7 @@
             <span class="bar-fill" style="width:{{ (row['value'] / top * 100) | round(1) }}%"></span>
           </span>
           <span class="bar-value">
-            {{ num(row['value']) }}
+            {{ num(row['value']) }}{{ chg(changes, row.repo['full_name'], metric) }}
             {% if row['second'] %}<small>/ {{ num(row['second']) }}</small>{% endif %}
           </span>
         </li>
@@ -49,11 +56,12 @@
 <section class="panel">
   <h2>{{ t('top.assets') }}</h2>
   <div class="table-wrap">
-    <table class="repos">
+    <table class="repos sortable">
       <thead>
         <tr>
-          <th>{{ t('col.repo') }}</th><th>{{ t('col.release') }}</th>
-          <th>{{ t('col.file') }}</th><th class="n">{{ t('col.downloads') }}</th>
+          <th data-sort="text">{{ t('col.repo') }}</th><th data-sort="text">{{ t('col.release') }}</th>
+          <th data-sort="text">{{ t('col.file') }}</th><th class="n" data-sort="num">{{ t('col.downloads') }}</th>
+          {% if asset_changes is not none %}<th class="n" data-sort="num">{{ t('col.change') }}</th>{% endif %}
           <th>{{ t('col.published') }}</th>
         </tr>
       </thead>
@@ -63,7 +71,8 @@
             <td class="name"><a href="/repo/{{ asset['full_name'] }}">{{ asset['full_name'].split('/')[1] }}</a></td>
             <td class="mono">{{ asset['tag'] }}</td>
             <td class="mono">{{ asset['asset'] }}</td>
-            <td class="n">{{ num(asset['downloads']) }}</td>
+            <td class="n" data-v="{{ asset['downloads'] }}">{{ num(asset['downloads']) }}</td>
+            {% if asset_changes is not none %}{{ asset_change(asset_changes.get((asset['full_name'], asset['tag'], asset['asset']))) }}{% endif %}
             <td class="ago">{{ ago(asset['published']) }}</td>
           </tr>
         {% endfor %}

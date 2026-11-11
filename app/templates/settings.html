@@ -25,6 +25,22 @@
   <section class="panel">
     <h2>{{ t('settings.display') }}</h2>
     <label class="option">
+      <input type="checkbox" name="show" {% if delta_show %}checked{% endif %}>
+      <span>
+        {{ t('settings.delta.show') }}
+        <span class="hint">{{ t('settings.delta.show.note') }}</span>
+      </span>
+    </label>
+    <label class="pick stack">
+      <span>{{ t('settings.delta.mode') }}</span>
+      <select name="mode">
+        {% for mode in delta_modes %}
+          <option value="{{ mode }}" {% if mode == delta_mode %}selected{% endif %}>{{ t('settings.delta.mode.' ~ mode) }}</option>
+        {% endfor %}
+      </select>
+      <span class="hint">{{ t('settings.delta.mode.note') }}</span>
+    </label>
+    <label class="option">
       <input type="checkbox" name="sticky" {% if sticky %}checked{% endif %}>
       <span>
         {{ t('settings.sticky') }}

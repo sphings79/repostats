@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "kpi.html" import tile %}
+{% from "kpi.html" import tile, chg %}
 {% block content %}
 
 <section class="hero">
@@ -54,7 +54,7 @@
 <section class="panel">
   <h2>{{ t('overview.repos') }}</h2>
   <div class="table-wrap">
-    <table class="repos" id="repo-table">
+    <table class="repos sortable" id="repo-table">
       <thead>
         <tr>
           <th data-sort="text">{{ t('col.repo') }}</th>
@@ -81,15 +81,16 @@
             {% if row.repo['archived'] %}<span class="tag warn">{{ t('tag.archived') }}</span>{% endif %}
             {% if row.repo['description'] %}<span class="desc">{{ row.repo['description'] }}</span>{% endif %}
           </td>
-          <td class="n">{{ num(row.snap['stars'] if row.snap else 0) }}</td>
-          <td class="n">{{ num(row.snap['forks'] if row.snap else 0) }}</td>
-          <td class="n">{{ num(row.snap['open_issues'] if row.snap else 0) }}</td>
-          <td class="n">{{ num(row.snap['open_prs'] if row.snap else 0) }}</td>
+          {% set key = row.repo['full_name'] %}
+          <td class="n" data-v="{{ row.snap['stars'] if row.snap else 0 }}">{{ num(row.snap['stars'] if row.snap else 0) }}{{ chg(changes, key, 'stars') }}</td>
+          <td class="n" data-v="{{ row.snap['forks'] if row.snap else 0 }}">{{ num(row.snap['forks'] if row.snap else 0) }}{{ chg(changes, key, 'forks') }}</td>
+          <td class="n" data-v="{{ row.snap['open_issues'] if row.snap else 0 }}">{{ num(row.snap['open_issues'] if row.snap else 0) }}{{ chg(changes, key, 'issues') }}</td>
+          <td class="n" data-v="{{ row.snap['open_prs'] if row.snap else 0 }}">{{ num(row.snap['open_prs'] if row.snap else 0) }}{{ chg(changes, key, 'prs') }}</td>
           <td class="n">{{ num(row.views) }}</td>
           <td class="n">{{ num(row.clones) }}</td>
-          <td class="n">{{ num(row.snap['downloads'] if row.snap else 0) }}</td>
+          <td class="n" data-v="{{ row.snap['downloads'] if row.snap else 0 }}">{{ num(row.snap['downloads'] if row.snap else 0) }}{{ chg(changes, key, 'downloads') }}</td>
           <td class="n">{% if row.snap and row.snap['ci_runs'] %}<span class="{{ 'ok' if row.snap['ci_rate'] >= 90 else ('bad' if row.snap['ci_rate'] < 60 else '') }}">{{ row.snap['ci_rate'] }} %</span>{% else %}<span class="dash">—</span>{% endif %}</td>
-          <td class="n">{% if row.snap and row.snap['ha_installs'] %}{{ num(row.snap['ha_installs']) }}{% else %}<span class="dash">—</span>{% endif %}</td>
+          <td class="n" data-v="{{ row.snap['ha_installs'] if row.snap and row.snap['ha_installs'] else 0 }}">{% if row.snap and row.snap['ha_installs'] %}{{ num(row.snap['ha_installs']) }}{{ chg(changes, key, 'installs') }}{% else %}<span class="dash">—</span>{% endif %}</td>
           <td class="spark-cell">{{ row.spark | safe }}</td>
           <td class="ago">{{ ago(row.repo['pushed_at']) }}</td>
         </tr>

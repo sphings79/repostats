@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "kpi.html" import tile %}
+{% from "kpi.html" import tile, asset_change %}
 {% block title %}{{ repo['name'] }} · Repo Stats{% endblock %}
 {% block content %}
 
@@ -159,14 +159,15 @@
 <section class="panel" id="assets">
   <h2>{{ t('repo.assets') }}</h2>
   <div class="table-wrap">
-    <table class="repos">
-      <thead><tr><th>{{ t('col.release') }}</th><th>{{ t('col.file') }}</th><th class="n">{{ t('col.downloads') }}</th><th>{{ t('col.published') }}</th></tr></thead>
+    <table class="repos sortable">
+      <thead><tr><th data-sort="text">{{ t('col.release') }}</th><th data-sort="text">{{ t('col.file') }}</th><th class="n" data-sort="num">{{ t('col.downloads') }}</th>{% if asset_changes is not none %}<th class="n" data-sort="num">{{ t('col.change') }}</th>{% endif %}<th>{{ t('col.published') }}</th></tr></thead>
       <tbody>
       {% for asset in assets %}
         <tr>
           <td class="mono">{{ asset['tag'] }}</td>
           <td class="mono">{{ asset['asset'] }}</td>
-          <td class="n">{{ num(asset['downloads']) }}</td>
+          <td class="n" data-v="{{ asset['downloads'] }}">{{ num(asset['downloads']) }}</td>
+          {% if asset_changes is not none %}{{ asset_change(asset_changes.get((asset['full_name'], asset['tag'], asset['asset']))) }}{% endif %}
           <td class="ago">{{ ago(asset['published']) }}</td>
         </tr>
       {% endfor %}
