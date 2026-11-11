@@ -137,6 +137,25 @@ dort nichts. `GITHUB_TOKEN_STARS` nimmt ein klassisches Token mit
 `public_repo`; getrennt gehalten heißt: Das Haupttoken braucht nirgends
 Schreibrechte. Ohne das Token beginnt die Sternkurve beim ersten Sammellauf.
 
+### Verwaltungsseite
+
+Das Folgende stellst du im Browser ein, nicht über Umgebungsvariablen:
+
+- **Abruf** — wie oft offene Issues und Pull Requests geholt werden: von alle 15
+  oder 30 Minuten bis täglich (Vorgabe: der tägliche volle Lauf). Ein Abruf
+  dazwischen liest nur die beiden Listen je Repository mit offenen Einträgen,
+  nicht die Such-API.
+- **Veränderung** — das kleine Plus und Minus an Kacheln, Listen und
+  Release-Dateien ein- oder ausblenden und festlegen, womit verglichen wird: mit
+  dem letzten Besuch (Vorgabe), mit vor 24 Stunden, 7 oder 30 Tagen. Die festen
+  Zeiträume werden aus dem gespeicherten Verlauf gerechnet und hängen nicht vom
+  Gerät ab. Bei Release-Dateien beginnt dieser Verlauf mit dem ersten Lauf nach
+  dem Update.
+- **Topics ausblenden** — Repositories mit einem dieser Topics fehlen in den
+  Listen für Issues und Pull Requests (und bleiben bei Benachrichtigungen still).
+  Summen und Diagramme bleiben unberührt. Die Topic-Auswahlen haben ein
+  Suchfeld.
+
 ## Hinter einem Reverse Proxy
 
 `docs/traefik.yaml.example` zeigt eine Route mit zwei Schlössern: auf das

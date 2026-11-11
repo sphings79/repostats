@@ -398,10 +398,54 @@ async def breakdown(request: Request, metric: str, days: int = 14):
     })
 
 
+def _hidden_topics() -> set[str]:
+    return {t for t in db.setting(HIDDEN, "").split(",") if t}
+
+
+def _topic_scope(rows, topic: str, everything: bool):
+    """Narrow a list of issues or pull requests by repository topic.
+
+    A repository carrying any hidden topic drops out, even if it has other,
+    visible ones, unless everything is asked for. Returns the remaining rows,
+    how many repositories were hidden, and the topics left to pick from.
+    """
+    topics = {r["full_name"]: {t for t in (r["topics"] or "").split(",") if t}
+              for r in db.repos()}
+    hidden = _hidden_topics()
+    dropped: set[str] = set()
+    kept = []
+    for row in rows:
+        mine = topics.get(row["full_name"], set())
+        if hidden and not everything and mine & hidden:
+            dropped.add(row["full_name"])
+            continue
+        kept.append(row)
+    choices = sorted({t for row in kept for t in topics.get(row["full_name"], set())}
+                     - (set() if everything else hidden))
+    if topic:
+        kept = [r for r in kept if topic in topics.get(r["full_name"], set())]
+    return kept, len(dropped), choices
+
+
+def _list_total_delta(metric: str, lang: str, filtered: bool):
+    """The change of the open total, only while the list is that total."""
+    if filtered:
+        return None
+    repos = db.repos()
+    snapshots = db.latest_snapshots()
+    if not snapshots:
+        return None
+    rows = [{"repo": r, "snap": snapshots.get(r["full_name"])} for r in repos]
+    return _deltas("overview", _tile_values(rows), lang, commit=False,
+                   past=lambda moment: _overview_at(repos, moment)).get(metric)
+
+
 @app.get("/issues", response_class=HTMLResponse)
-async def issues(request: Request, repo: str | None = None):
+async def issues(request: Request, repo: str | None = None,
+                 topic: str = "", all: int = 0):
     """Every open issue across the followed repositories, with links."""
-    rows = db.issues(repo)
+    lang = i18n.pick(request.cookies.get("lang"), request.headers.get("accept-language"))
+    rows, hidden, choices = _topic_scope(db.issues(repo), topic, bool(all))
     per_repo: dict[str, list] = {}
     for row in rows:
         per_repo.setdefault(row["full_name"], []).append(row)
@@ -409,15 +453,19 @@ async def issues(request: Request, repo: str | None = None):
     return _render(request, "issues.html", {
         "groups": sorted(per_repo.items(), key=lambda kv: (-len(kv[1]), kv[0])),
         "total": len(rows),
-        "single": repo,
+        "single": repo, "topic": topic, "choices": choices,
+        "hidden_repos": hidden, "show_all": bool(all), "has_hidden": bool(_hidden_topics()),
+        "delta": _list_total_delta("issues", lang, bool(repo or topic or hidden)),
         "last_run": db.last_run(),
     })
 
 
 @app.get("/pulls", response_class=HTMLResponse)
-async def pulls(request: Request, repo: str | None = None, bots: int = 1):
+async def pulls(request: Request, repo: str | None = None, bots: int = 1,
+                topic: str = "", all: int = 0):
     """Every open pull request across the followed repositories, with links."""
-    rows = db.pulls(repo)
+    lang = i18n.pick(request.cookies.get("lang"), request.headers.get("accept-language"))
+    rows, hidden, choices = _topic_scope(db.pulls(repo), topic, bool(all))
     bot_count = sum(1 for r in rows if r["is_bot"])
     if not bots:
         rows = [r for r in rows if not r["is_bot"]]
@@ -430,7 +478,9 @@ async def pulls(request: Request, repo: str | None = None, bots: int = 1):
         "total": len(rows),
         "bots": bot_count,
         "show_bots": bool(bots),
-        "single": repo,
+        "single": repo, "topic": topic, "choices": choices,
+        "hidden_repos": hidden, "show_all": bool(all), "has_hidden": bool(_hidden_topics()),
+        "delta": _list_total_delta("prs", lang, bool(repo or topic or hidden or not bots)),
         "last_run": db.last_run(),
     })
 
@@ -467,6 +517,7 @@ def _settings_context(mqtt_config: dict | None = None, mqtt_test: str | None = N
         "delta_show": db.setting(SHOW, "1") == "1",
         "delta_mode": db.setting(MODE, "visit"),
         "delta_modes": MODES,
+        "hidden_topics": sorted(_hidden_topics()),
         # the password never goes back to the browser, only whether one is set
         "mqtt": {**config, "password": "", "has_password": bool(config["password"])},
         "mqtt_status": publisher.status(),
@@ -501,6 +552,10 @@ async def save_display(request: Request):
     db.set_setting(SHOW, "1" if form.get("show") else "0")
     mode = str(form.get("mode") or "visit")
     db.set_setting(MODE, mode if mode in MODES else "visit")
+    # topics come from the page's own list; commas would break the storage
+    hidden = sorted({str(t).strip() for t in form.getlist("hidden_topics")
+                     if str(t).strip() and "," not in str(t)})
+    db.set_setting(HIDDEN, ",".join(hidden))
     return RedirectResponse("/settings", status_code=303)
 
 
@@ -720,6 +775,7 @@ ISSUES_CHOICES = (15, 30, 60, 120, 360, 720, 1440)
 STICKY = "delta_sticky"
 SHOW = "delta_show"
 MODE = "delta_mode"
+HIDDEN = "hidden_topics"
 # what "since" can be measured against, other than the last visit
 PERIODS = {"24h": 24, "7d": 24 * 7, "30d": 24 * 30}
 MODES = ("visit", *PERIODS)

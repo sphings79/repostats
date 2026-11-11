@@ -134,6 +134,23 @@ anonymous callers. `GITHUB_TOKEN_STARS` takes a classic token with
 access to anything. Without it the star curve simply starts at your first
 collection run.
 
+### Settings page
+
+Everything below is set in the browser, not through environment variables:
+
+- **Fetching** — how often open issues and pull requests are fetched: every 15
+  or 30 minutes up to daily (default; the daily full run). A fetch in between
+  only reads the two lists per repository that has anything open, not the
+  search API.
+- **Changes** — show or hide the small plus and minus on tiles, lists and
+  release files, and what they are measured against: the last visit (default),
+  24 hours, 7 days or 30 days ago. The fixed periods are worked out from the
+  stored history, so they do not depend on which device you looked from. For
+  release files that history starts with the first run after the update.
+- **Hide topics** — repositories with one of these topics are left out of the
+  issue and pull request lists (and stay silent in notifications). Totals and
+  charts are not affected. The topic dropdowns have a search field.
+
 ## Behind a reverse proxy
 
 `docs/traefik.yaml.example` shows a route with two locks: restricted to the

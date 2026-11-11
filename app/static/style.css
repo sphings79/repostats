@@ -522,5 +522,25 @@ footer .source:hover { color: var(--accent); }
 .chg.flat { color: var(--dim); }
 table.repos td .dash { color: var(--dim); }
 
-/* a stacked setting: label, control and note under each other */
+/* the search field on top of a long dropdown */
+.combo-find {
+  width: 100%; height: 32px; margin: 0 0 5px; font-size: 13px;
+}
+.combo-none { padding: 7px 11px; font-size: 13px; color: var(--dim); }
+.combo-list li[hidden] { display: none; }
+
+/* a block of settings with its own title, and the chips under a picker */
 .stack { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 14px 0; }
+.field-title { font-size: 13px; color: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px;
+  border: 1px solid var(--line); border-radius: 999px; font-size: 12.5px;
+  background: rgba(65, 189, 245, .08); color: var(--text);
+}
+.chip button {
+  width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1;
+}
+.chip button:hover { background: rgba(255, 255, 255, .1); color: var(--text); }
+.hero-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
