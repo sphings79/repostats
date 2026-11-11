@@ -721,6 +721,15 @@ class Database:
             return con.execute(
                 "SELECT * FROM run ORDER BY started_at DESC LIMIT 1").fetchone()
 
+    def last_run_of(self, kinds: tuple[str, ...]) -> str | None:
+        """When the newest finished run of these kinds started."""
+        marks = ",".join("?" * len(kinds))
+        with self.connect() as con:
+            row = con.execute(
+                f"SELECT MAX(started_at) AS t FROM run WHERE kind IN ({marks})"
+                " AND finished_at IS NOT NULL AND ok = 1", kinds).fetchone()
+        return row["t"]
+
     def last_finished_run(self) -> sqlite3.Row | None:
         """The newest run that has ended, so a run in progress hides nothing."""
         with self.connect() as con:

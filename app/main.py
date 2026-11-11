@@ -101,11 +101,35 @@ async def _scheduler() -> None:
         await asyncio.sleep(QUICK_MINUTES * 60)
 
 
+async def _issues_scheduler() -> None:
+    """Fetch the open issues and pull requests on their own clock.
+
+    The interval is read every minute, so changing it under /settings takes
+    effect without a restart. A full run fetches them too and counts as one.
+    """
+    if not TOKEN or not LOGIN:
+        return
+    while True:
+        await asyncio.sleep(60)
+        try:
+            minutes = int(db.setting(ISSUES_EVERY, "1440"))
+            if minutes >= 1440 or collector.running or collector.pending:
+                continue
+            last = db.last_run_of(("issues", "full"))
+            if last and (datetime.now(timezone.utc) - datetime.fromisoformat(last)
+                         ).total_seconds() < minutes * 60:
+                continue
+            await collector.run("issues")
+        except Exception:                               # noqa: BLE001
+            _LOGGER.exception("Scheduled issue refresh failed")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    task = asyncio.create_task(_scheduler())
+    tasks = [asyncio.create_task(_scheduler()), asyncio.create_task(_issues_scheduler())]
     yield
-    task.cancel()
+    for task in tasks:
+        task.cancel()
 
 
 app = FastAPI(title="Repo Stats", lifespan=lifespan)
@@ -438,6 +462,8 @@ def _settings_context(mqtt_config: dict | None = None, mqtt_test: str | None = N
         "login": LOGIN,
         "has_token": bool(TOKEN),
         "sticky": db.setting(STICKY, "1") == "1",
+        "issues_minutes": int(db.setting(ISSUES_EVERY, "1440")),
+        "issues_choices": ISSUES_CHOICES,
         "delta_show": db.setting(SHOW, "1") == "1",
         "delta_mode": db.setting(MODE, "visit"),
         "delta_modes": MODES,
@@ -457,6 +483,12 @@ async def settings(request: Request):
 async def save_settings(request: Request):
     form = await request.form()
     db.set_tracked(form.getlist("tracked"))
+    return RedirectResponse("/settings", status_code=303)
+
+
+@app.post("/settings/collection")
+async def save_collection(minutes: int = Form(1440)):
+    db.set_setting(ISSUES_EVERY, str(minutes if minutes in ISSUES_CHOICES else 1440))
     return RedirectResponse("/settings", status_code=303)
 
 
@@ -681,6 +713,10 @@ DELTA_TILES = {
     "ci_runs": True, "ci_rate": True,
     "issues": False, "prs": False, "ci_seconds": False,
 }
+ISSUES_EVERY = "issues_minutes"
+# how often open issues and pull requests are fetched; the last one is the
+# daily full run, which fetches them anyway
+ISSUES_CHOICES = (15, 30, 60, 120, 360, 720, 1440)
 STICKY = "delta_sticky"
 SHOW = "delta_show"
 MODE = "delta_mode"

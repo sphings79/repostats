@@ -21,6 +21,24 @@
   {% if pending %}<span class="hint">{{ t('settings.queued') }}: {{ pending }}</span>{% endif %}
 </div>
 
+<form method="post" action="/settings/collection">
+  <section class="panel">
+    <h2>{{ t('settings.collection') }}</h2>
+    <label class="pick stack">
+      <span>{{ t('settings.issues_every') }}</span>
+      <select name="minutes">
+        {% for minutes in issues_choices %}
+          <option value="{{ minutes }}" {% if minutes == issues_minutes %}selected{% endif %}>{{ t('settings.every.' ~ minutes) }}</option>
+        {% endfor %}
+      </select>
+      <span class="hint">{{ t('settings.issues_every.note') }}</span>
+    </label>
+    <div class="actions">
+      <button type="submit">{{ t('settings.display.save') }}</button>
+    </div>
+  </section>
+</form>
+
 <form method="post" action="/settings/display">
   <section class="panel">
     <h2>{{ t('settings.display') }}</h2>

@@ -7,6 +7,9 @@ Two kinds of run:
             the last fourteen days in one go, so this also repairs gaps left
             by downtime shorter than two weeks.
 * "quick" — hourly. The cheap counters: stars, forks, watchers, downloads.
+* "issues" — as often as the settings say, if more often than daily. Only the
+            open issues and pull requests: two list calls per repository that
+            has any, no search API.
 """
 import asyncio
 import logging
@@ -131,6 +134,10 @@ class Collector:
         if not repo:
             return
 
+        if kind == "issues":
+            await self._issues_only(github, full_name, repo)
+            return
+
         values = {
             "stars": repo.get("stargazers_count", 0),
             "forks": repo.get("forks_count", 0),
@@ -202,6 +209,32 @@ class Collector:
                             "ci_runs", "ci_success", "ci_rate", "ci_seconds", "ci_last"):
                     values[key] = previous[key]
 
+        self.db.write_snapshot(full_name, values)
+
+    async def _issues_only(self, github: GitHub, full_name: str, repo: dict) -> None:
+        """Refresh what is open, and nothing else.
+
+        GitHub's own count lumps pull requests in with the issues, but it is
+        zero exactly when both lists are empty, which is the one case worth
+        skipping the calls for. Otherwise the lists are fetched and counted.
+        Everything else in the new snapshot is carried over from the last one.
+        """
+        previous = self.db.latest_snapshot(full_name)
+        if not previous:
+            return                      # nothing to carry over yet; the full run starts it
+
+        if repo.get("open_issues_count", 0):
+            issues = await github.open_issues(full_name)
+            pulls = await github.open_pulls(full_name)
+        else:
+            issues, pulls = [], []
+        self.db.write_issues(full_name, issues)
+        self.db.write_pulls(full_name, pulls)
+
+        values = {key: previous[key] for key in previous.keys()
+                  if key not in ("full_name", "taken_at")}
+        values["open_issues"] = len(issues)
+        values["open_prs"] = len(pulls)
         self.db.write_snapshot(full_name, values)
 
     def _installs(self, full_name: str, entry: dict, tags: set, values: dict) -> None:
