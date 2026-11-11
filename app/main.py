@@ -22,7 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth as auth_module, charts, i18n, mqtt as mqtt_module
+from . import auth as auth_module, charts, i18n, mqtt as mqtt_module, notify as notify_module
 from .collector import Collector
 from .db import Database
 
@@ -65,7 +65,16 @@ db = Database(DB_PATH)
 collector = Collector(db, TOKEN, LOGIN, STAR_TOKEN)
 auth = auth_module.Auth(db)
 publisher = mqtt_module.Publisher(db, lambda rows: _install_total(rows))
-collector.after_run = publisher.publish
+notifier = notify_module.Notifier(db, lambda: _hidden_topics())
+
+
+async def _after_run() -> None:
+    """MQTT first, so the notifications see how that went too."""
+    await publisher.publish()
+    await notifier.after_run()
+
+
+collector.after_run = _after_run
 
 
 async def _scheduler() -> None:
@@ -124,9 +133,20 @@ async def _issues_scheduler() -> None:
             _LOGGER.exception("Scheduled issue refresh failed")
 
 
+async def _notify_retry() -> None:
+    """Another go at messages that could not be delivered."""
+    while True:
+        await asyncio.sleep(60)
+        try:
+            await notifier.retry()
+        except Exception:                               # noqa: BLE001
+            _LOGGER.exception("Retrying notifications failed")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    tasks = [asyncio.create_task(_scheduler()), asyncio.create_task(_issues_scheduler())]
+    tasks = [asyncio.create_task(_scheduler()), asyncio.create_task(_issues_scheduler()),
+             asyncio.create_task(_notify_retry())]
     yield
     for task in tasks:
         task.cancel()
@@ -618,6 +638,82 @@ async def discover():
     found = await collector.discover()
     _LOGGER.info("Repository list refreshed: %s entries", found)
     return RedirectResponse("/settings", status_code=303)
+
+
+def _notify_context(test: dict | None = None, error: str | None = None,
+                    config: dict | None = None) -> dict:
+    status = notifier.status()
+    iso = lambda stamp: (datetime.fromtimestamp(stamp, timezone.utc).isoformat(timespec="seconds")
+                         if stamp else None)
+    status["last_sent"] = iso(status["last_sent"])
+    if status["last_error"]:
+        status["last_error"] = {**status["last_error"], "at": iso(status["last_error"]["ts"])}
+    return {"cfg": config or notifier.config(), "flags": notifier.flags(),
+            "status": status, "test": test, "error": error,
+            "channels": notify_module.CHANNELS}
+
+
+@app.get("/notifications", response_class=HTMLResponse)
+async def notifications(request: Request):
+    return _render(request, "notifications.html", _notify_context())
+
+
+@app.post("/notifications", response_class=HTMLResponse)
+async def save_notifications(request: Request):
+    """Save, and optionally test one channel with what was just saved."""
+    form = await request.form()
+    get = lambda name: str(form.get(name) or "").strip()
+    flag = lambda name: form.get(name) is not None
+    old = notifier.config()
+
+    try:
+        priority = int(get("pushover_priority") or 0)
+    except ValueError:
+        priority = 0
+    config = notify_module.normalise({
+        "enabled": flag("enabled"), "lang": get("lang"),
+        "telegram": {"enabled": flag("telegram_on"), "chat_id": get("telegram_chat")},
+        "ha": {"enabled": flag("ha_on"), "url": get("ha_url"), "service": get("ha_service"),
+               "insecure": flag("ha_insecure")},
+        "pushover": {"enabled": flag("pushover_on"), "priority": priority},
+        "webhook": {"enabled": flag("webhook_on"), "format": get("webhook_format"),
+                    "insecure": flag("webhook_insecure")},
+        "rules": {key: flag(f"rule_{key}") for key in old["rules"]},
+    })
+    # switching a channel on switches the whole thing on
+    if any(config[ch]["enabled"] and not old[ch]["enabled"] for ch in notify_module.CHANNELS):
+        config["enabled"] = True
+
+    problem = notify_module.validate(config)
+    secrets = notifier.secrets()
+    for name, check in (("telegram_token", notify_module.TOKEN_RE),
+                        ("ha_token", None), ("pushover_token", None),
+                        ("pushover_user", None), ("webhook_auth", None),
+                        ("webhook_url", notify_module.URL_RE)):
+        value = get(name)
+        if not value:
+            continue
+        if check and not check.match(value):
+            problem = problem or ("badToken" if name == "telegram_token" else "badUrl")
+        else:
+            secrets[name] = value[:500]
+    for channel in form.getlist("clear"):
+        for name in notify_module.SECRETS_OF.get(str(channel), ()):
+            secrets[name] = ""
+
+    if problem:
+        return _render(request, "notifications.html", _notify_context(
+            error=problem, config=config))
+
+    notifier.save_config(config)
+    notifier.save_secrets(secrets)
+
+    action = get("action")
+    if action.startswith("test:"):
+        result = await notifier.test(action[5:])
+        return _render(request, "notifications.html", _notify_context(
+            test={"channel": action[5:], **result}))
+    return RedirectResponse("/notifications", status_code=303)
 
 
 @app.post("/collect")
