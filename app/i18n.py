@@ -258,6 +258,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.interrupted": "abgebrochen",
         "footer.collecting": "Sammlung läuft …",
         "footer.source": "Quelltext (AGPL-3.0)",
+        "footer.star": "Auf GitHub mit Stern versehen",
+        "footer.coffee": "Spendier mir einen Kaffee",
 
         "top.share": "Verteilung",
         "top.across": "über {n} Repositories",
@@ -600,6 +602,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "footer.interrupted": "interrupted",
         "footer.collecting": "collecting …",
         "footer.source": "Source (AGPL-3.0)",
+        "footer.star": "Star on GitHub",
+        "footer.coffee": "Buy me a coffee",
 
         "top.share": "How it splits up",
         "top.across": "across {n} repositories",

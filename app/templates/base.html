@@ -28,6 +28,8 @@
       <a class="only-mobile{% if request.url.path == '/account' %} active{% endif %}" href="/account">{{ t('account.title') }}</a>
       <a class="only-mobile" href="/logout">{{ t('login.logout') }}</a>
     {% endif %}
+    <a class="only-mobile strong" href="{{ source_url }}" target="_blank" rel="noreferrer"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>{{ t('footer.star') }}</a>
+    <a class="only-mobile strong" href="https://buymeacoffee.com/sphings" target="_blank" rel="noreferrer"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>{{ t('footer.coffee') }}</a>
   </nav>
   {% endif %}
   <div class="lang">
@@ -72,6 +74,10 @@
     · {{ last_run['repos'] or 0 }} {{ t('col.repos') }}
   {% endif %}
   {% if running %}<span class="pulse">{{ t('footer.collecting') }}</span>{% endif %}
+  <span class="foot-links">
+    <a class="strong" href="{{ source_url }}" target="_blank" rel="noreferrer"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>{{ t('footer.star') }}</a>
+    <a class="strong" href="https://buymeacoffee.com/sphings" target="_blank" rel="noreferrer"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>{{ t('footer.coffee') }}</a>
+  </span>
   <a class="source" href="{{ source_url }}" target="_blank" rel="noreferrer">{{ t('footer.source') }}</a>
 </footer>
 
