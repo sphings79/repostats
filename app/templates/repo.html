@@ -160,7 +160,7 @@
   <h2>{{ t('repo.assets') }}</h2>
   <div class="table-wrap">
     <table class="repos sortable">
-      <thead><tr><th data-sort="text">{{ t('col.release') }}</th><th data-sort="text">{{ t('col.file') }}</th><th class="n" data-sort="num">{{ t('col.downloads') }}</th>{% if asset_changes is not none %}<th class="n" data-sort="num">{{ t('col.change') }}</th>{% endif %}<th>{{ t('col.published') }}</th></tr></thead>
+      <thead><tr><th data-sort="text">{{ t('col.release') }}</th><th data-sort="text">{{ t('col.file') }}</th><th class="n" data-sort="num">{{ t('col.downloads') }}</th>{% if asset_changes is not none %}<th class="n" data-sort="num">{{ t('col.change') }}{% if asset_since %} ({{ asset_since }}){% endif %}</th>{% endif %}<th>{{ t('col.published') }}</th></tr></thead>
       <tbody>
       {% for asset in assets %}
         <tr>

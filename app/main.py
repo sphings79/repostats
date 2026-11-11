@@ -324,6 +324,7 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         past=lambda moment: _repo_at(full_name, moment),
     ) if snap else {}
     assets = db.assets(full_name)
+    asset_changes, asset_since = _asset_changes(assets, deltas, lang)
 
     return _render(request, "repo.html", {
         "repo": repo, "snap": snap, "days": days, "deltas": deltas,
@@ -332,7 +333,7 @@ async def repo_page(request: Request, owner: str, name: str, days: int = 30):
         "referrers": charts.bars(db.referrers(full_name), "source", "views", lang=lang),
         "paths": charts.bars(db.paths(full_name), "path", "views", lang=lang),
         "assets": assets,
-        "asset_changes": _asset_changes(assets, deltas, lang),
+        "asset_changes": asset_changes, "asset_since": asset_since,
         "pulls": db.pulls(full_name),
         "views14": _sum(db.series(full_name, "views", 14)),
         "clones14": _sum(db.series(full_name, "clones", 14)),
@@ -398,7 +399,7 @@ async def breakdown(request: Request, metric: str, days: int = 14):
     # The same change the tile on the overview shows, measured against the
     # same mark. The overview counts every followed repository, so the
     # number compared is that total, not the narrowed one listed here.
-    delta, changes, asset_changes = None, {}, None
+    delta, changes, asset_changes, asset_since = None, {}, None, None
     if spec.get("delta") and snapshots:
         everyone = [{"repo": r, "snap": snapshots.get(r["full_name"])} for r in repos]
         deltas = _deltas("overview", _tile_values(everyone), lang, commit=False,
@@ -406,11 +407,11 @@ async def breakdown(request: Request, metric: str, days: int = 14):
         delta = deltas.get(metric)
         changes = _repo_changes(deltas, snapshots, lang, [metric])
         if metric == "downloads":
-            asset_changes = _asset_changes(db.assets(None), deltas, lang)
+            asset_changes, asset_since = _asset_changes(db.assets(None), deltas, lang)
 
     return _render(request, "top.html", {
         "metric": metric, "rows": rows, "total": total, "delta": delta,
-        "changes": changes, "asset_changes": asset_changes,
+        "changes": changes, "asset_changes": asset_changes, "asset_since": asset_since,
         "second_total": second_total, "days": days,
         "title": t(spec["title"]), "note": note,
         "assets": db.assets(None) if metric == "downloads" else None,
@@ -1003,17 +1004,26 @@ def _repo_changes(deltas: dict, snapshots: dict, lang: str, metrics) -> dict:
     return found
 
 
-def _asset_changes(assets, deltas: dict, lang: str) -> dict | None:
+def _asset_changes(assets, deltas: dict, lang: str):
     """Per release file: how many downloads came in over the same span as the
-    downloads tile. None when changes are switched off; a file with no value
-    recorded back then maps to None, which the table shows as a dash."""
+    downloads tile, and, when the history is shorter than that, since when
+    the figures really are measured.
+
+    Returns (changes, since). changes is None when the display is switched
+    off. A file with nothing recorded to compare against maps to None, which
+    the table shows as a dash. When the history does not reach back to the
+    moment asked for, the oldest recorded count is used instead and `since`
+    says from when; a cell then carries its own start as "partial".
+    """
     if db.setting(SHOW, "1") != "1":
-        return None
+        return None, None
     ref = (deltas.get("downloads") or {}).get("ref")
     if not ref or not assets:
-        return {}
+        return {}, None
     old = db.assets_at(ref)
+    first = db.assets_first()
     found: dict[tuple, dict | None] = {}
+    latest_start = None
     for a in assets:
         key = (a["full_name"], a["tag"], a["asset"])
         if key in old:
@@ -1021,9 +1031,14 @@ def _asset_changes(assets, deltas: dict, lang: str) -> dict | None:
         elif a["published"] and a["published"] > ref:
             # uploaded after the moment in question: all of it is new
             found[key] = _delta("downloads", a["downloads"], None, lang)
+        elif key in first:
+            start, count = first[key]
+            found[key] = {**_delta("downloads", a["downloads"] - count, start, lang),
+                          "partial": True}
+            latest_start = max(latest_start or start, start)
         else:
             found[key] = None
-    return found
+    return found, (i18n.since(latest_start, lang) if latest_start else None)
 
 
 def _delta(metric: str, amount: float, when: str | None, lang: str) -> dict:

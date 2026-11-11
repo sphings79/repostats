@@ -61,7 +61,7 @@
         <tr>
           <th data-sort="text">{{ t('col.repo') }}</th><th data-sort="text">{{ t('col.release') }}</th>
           <th data-sort="text">{{ t('col.file') }}</th><th class="n" data-sort="num">{{ t('col.downloads') }}</th>
-          {% if asset_changes is not none %}<th class="n" data-sort="num">{{ t('col.change') }}</th>{% endif %}
+          {% if asset_changes is not none %}<th class="n" data-sort="num">{{ t('col.change') }}{% if asset_since %} ({{ asset_since }}){% endif %}</th>{% endif %}
           <th>{{ t('col.published') }}</th>
         </tr>
       </thead>

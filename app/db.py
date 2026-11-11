@@ -463,6 +463,24 @@ class Database:
                 [(full_name, *r) for r in rows],
             )
 
+    def assets_first(self, full_name: str | None = None) -> dict[tuple, tuple[str, int]]:
+        """The oldest recorded download count of every release file, with when.
+
+        What a comparison falls back on when the history does not reach as
+        far back as the moment asked for."""
+        sql = """SELECT h.full_name, h.tag, h.asset, h.taken_at, h.downloads
+                 FROM release_asset_history h
+                 JOIN (SELECT full_name, tag, asset, MIN(taken_at) AS t
+                       FROM release_asset_history{where}
+                       GROUP BY full_name, tag, asset) m
+                   ON m.full_name = h.full_name AND m.tag = h.tag
+                  AND m.asset = h.asset AND m.t = h.taken_at"""
+        where, params = ("", ()) if not full_name else (" WHERE full_name = ?", (full_name,))
+        with self.connect() as con:
+            rows = con.execute(sql.format(where=where), params).fetchall()
+        return {(r["full_name"], r["tag"], r["asset"]): (r["taken_at"], r["downloads"])
+                for r in rows}
+
     def assets_at(self, moment: str, full_name: str | None = None) -> dict[tuple, int]:
         """Download count of every release file as it stood at a moment.
 

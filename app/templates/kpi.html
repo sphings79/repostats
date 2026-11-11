@@ -3,7 +3,7 @@
 
 {# one cell of the release-file tables: sorts by the amount, a dash if unknown #}
 {% macro asset_change(c) %}
-  {% if c %}<td class="n" data-v="{{ c.value }}"><span class="kpi-delta {{ c.mood }}">{{ c.text }}</span></td>
+  {% if c %}<td class="n" data-v="{{ c.value }}"><span class="kpi-delta {{ c.mood }}"{% if c.partial %} title="{{ c.since }}"{% endif %}>{{ c.text }}</span></td>
   {% else %}<td class="n" data-v="-1"><span class="dash">—</span></td>{% endif %}
 {% endmacro %}
 
