@@ -35,6 +35,7 @@ it** — self-hosted, in a single container, on your own network.
 - [What it shows](#what-it-shows)
 - [Running it](#running-it)
 - [Configuration](#configuration)
+- [Notifications](#notifications)
 - [Behind a reverse proxy](#behind-a-reverse-proxy)
 - [How it works](#how-it-works)
 - [Questions](#questions)
@@ -150,6 +151,28 @@ Everything below is set in the browser, not through environment variables:
 - **Hide topics** — repositories with one of these topics are left out of the
   issue and pull request lists (and stay silent in notifications). Totals and
   charts are not affected. The topic dropdowns have a search field.
+
+## Notifications
+
+The *Notifications* page can tell you when something needs a look: a new open
+issue, a new open pull request (bots can be left out), a collection run that
+failed, a failed MQTT publish, and the all-clear when those work again.
+
+Channels: **Telegram** (setup in [docs/TELEGRAM.md](docs/TELEGRAM.md)),
+**Pushover**, **Home Assistant** (`notify` service, long-lived token) and a
+**webhook** (JSON or plain text). Nothing is sent until you switch it on and
+fill in a channel; the main switch is a pause button.
+
+- What is already open when you switch it on, or when you start following a
+  repository, is not reported. More than 5 new items in one run arrive as one
+  message. Repositories with a topic hidden under *Settings* stay silent.
+- A message that cannot be delivered waits in a queue (retried every minute,
+  for up to 24 hours); at most 30 messages per hour are sent.
+- Tokens and the webhook address are stored in the database file, are never
+  sent back to the page and never written to the log. A backup of `/data`
+  contains them.
+- How soon a new issue is noticed depends on how often open issues are
+  fetched, which you set under *Settings*.
 
 ## Behind a reverse proxy
 

@@ -35,6 +35,7 @@ zeichnet es** — selbst gehostet, in einem Container, im eigenen Netz.
 - [Was drin steht](#was-drin-steht)
 - [Betrieb](#betrieb)
 - [Einstellungen](#einstellungen)
+- [Benachrichtigungen](#benachrichtigungen)
 - [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy)
 - [Wie es arbeitet](#wie-es-arbeitet)
 - [Fragen](#fragen)
@@ -155,6 +156,30 @@ Das Folgende stellst du im Browser ein, nicht über Umgebungsvariablen:
   Listen für Issues und Pull Requests (und bleiben bei Benachrichtigungen still).
   Summen und Diagramme bleiben unberührt. Die Topic-Auswahlen haben ein
   Suchfeld.
+
+## Benachrichtigungen
+
+Die Seite *Benachrichtigungen* meldet, wenn etwas einen Blick braucht: ein neues
+offenes Issue, ein neuer offener Pull Request (Bots lassen sich ausnehmen), ein
+fehlgeschlagener Abruf, ein fehlgeschlagenes Senden an MQTT und die Entwarnung,
+wenn das wieder läuft.
+
+Kanäle: **Telegram** (Einrichtung in [docs/TELEGRAM.de.md](docs/TELEGRAM.de.md)),
+**Pushover**, **Home Assistant** (`notify`-Dienst, langlebiges Token) und ein
+**Webhook** (JSON oder Klartext). Es wird nichts gesendet, bevor du es einschaltest
+und einen Kanal einträgst; der Hauptschalter ist eine Pause-Taste.
+
+- Was beim Einschalten schon offen ist, und was ein neu verfolgtes Repository
+  schon mitbringt, wird nicht gemeldet. Mehr als 5 neue Einträge in einem Abruf
+  kommen als eine Sammelnachricht. Repositories mit einem unter *Verwaltung*
+  ausgeblendeten Topic bleiben still.
+- Eine Nachricht, die nicht zugestellt werden kann, wartet in einer Warteschlange
+  (jede Minute ein neuer Versuch, bis zu 24 Stunden); höchstens 30 Nachrichten
+  pro Stunde gehen raus.
+- Tokens und die Webhook-Adresse liegen in der Datenbankdatei, gehen nie an die
+  Seite zurück und stehen nie im Log. Ein Backup von `/data` enthält sie.
+- Wie schnell ein neues Issue auffällt, hängt davon ab, wie oft die offenen
+  Issues abgerufen werden; das stellst du unter *Verwaltung* ein.
 
 ## Hinter einem Reverse Proxy
 

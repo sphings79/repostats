@@ -544,3 +544,9 @@ table.repos td .dash { color: var(--dim); }
 }
 .chip button:hover { background: rgba(255, 255, 255, .1); color: var(--text); }
 .hero-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* notifications */
+.field { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; max-width: 460px; }
+.field > span { color: var(--muted); font-size: 12.5px; }
+.field input { height: 40px; font-size: 14px; }
+.channels.paused .panel { opacity: .55; }

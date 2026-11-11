@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ t('notify.title') }} · Repo Stats{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <h1>{{ t('notify.title') }}</h1>
+    <p class="sub">{{ t('notify.sub') }}</p>
+  </div>
+</section>
+
+{% if error %}<p class="warning">{{ t('notify.err.' ~ error) }}</p>{% endif %}
+{% if test %}
+  {% if test.ok %}
+    <p class="warning soft"><span class="ok">{{ t('notify.test.ok', channel=t('notify.ch.' ~ test.channel)) }}</span></p>
+  {% else %}
+    <p class="warning">{{ t('notify.test.fail', channel=t('notify.ch.' ~ test.channel)) }}: <code>{{ test.error }}</code></p>
+  {% endif %}
+{% endif %}
+
+<form method="post" action="/notifications" autocomplete="off">
+
+  <section class="panel">
+    <h2>{{ t('notify.status') }}</h2>
+    <label class="option">
+      <input type="checkbox" name="enabled" {% if cfg.enabled %}checked{% endif %}>
+      <span>
+        {{ t('notify.enabled') }}
+        <span class="hint">{{ t('notify.enabled.note') }}</span>
+      </span>
+    </label>
+    <label class="pick stack">
+      <span>{{ t('notify.lang') }}</span>
+      <select name="lang">
+        <option value="en" {% if cfg.lang == 'en' %}selected{% endif %}>English</option>
+        <option value="de" {% if cfg.lang == 'de' %}selected{% endif %}>Deutsch</option>
+      </select>
+    </label>
+    <p class="hint">
+      {% if status.last_sent %}{{ t('notify.last_sent') }} {{ ago(status.last_sent) }}{% else %}{{ t('notify.never') }}{% endif %}
+      {% if status.queue %} · {{ t('notify.queue', n=status.queue) }}{% endif %}
+      {% if status.active %} · {{ t('notify.active') }}: {{ status.active | join(', ') }}{% endif %}
+    </p>
+    {% if status.last_error %}
+      <p class="warning soft">{{ t('notify.last_error') }} ({{ t('notify.ch.' ~ status.last_error.channel) }}, {{ ago(status.last_error.at) }}): <code>{{ status.last_error.error }}</code></p>
+    {% endif %}
+    <div class="actions">
+      <button type="submit" name="action" value="save">{{ t('notify.save') }}</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>{{ t('notify.rules') }}</h2>
+    <label class="option"><input type="checkbox" name="rule_issues" {% if cfg.rules.issues %}checked{% endif %}>
+      <span>{{ t('notify.rule.issues') }}</span></label>
+    <label class="option"><input type="checkbox" name="rule_pulls" {% if cfg.rules.pulls %}checked{% endif %}>
+      <span>{{ t('notify.rule.pulls') }}</span></label>
+    <label class="option"><input type="checkbox" name="rule_bots" {% if cfg.rules.bots %}checked{% endif %}>
+      <span>{{ t('notify.rule.bots') }}<span class="hint">{{ t('notify.rule.bots.note') }}</span></span></label>
+    <label class="option"><input type="checkbox" name="rule_run_failed" {% if cfg.rules.run_failed %}checked{% endif %}>
+      <span>{{ t('notify.rule.run_failed') }}</span></label>
+    <label class="option"><input type="checkbox" name="rule_mqtt_failed" {% if cfg.rules.mqtt_failed %}checked{% endif %}>
+      <span>{{ t('notify.rule.mqtt_failed') }}</span></label>
+    <label class="option"><input type="checkbox" name="rule_recovery" {% if cfg.rules.recovery %}checked{% endif %}>
+      <span>{{ t('notify.rule.recovery') }}</span></label>
+    <p class="hint">{{ t('notify.rules.note') }}</p>
+  </section>
+
+  <div class="channels{% if not cfg.enabled %} paused{% endif %}">
+
+  <section class="panel">
+    <h2>Telegram</h2>
+    <label class="option"><input type="checkbox" name="telegram_on" {% if cfg.telegram.enabled %}checked{% endif %}>
+      <span>{{ t('notify.channel.on') }}</span></label>
+    <label class="field"><span>{{ t('notify.telegram.token') }}</span>
+      <input type="password" name="telegram_token" autocomplete="new-password"
+             placeholder="{{ t('notify.secret.kept') if flags.telegram else '123456789:AAH…' }}"></label>
+    <label class="field"><span>{{ t('notify.telegram.chat') }}</span>
+      <input type="text" name="telegram_chat" value="{{ cfg.telegram.chat_id }}" placeholder="123456789 / -100… / @channel"></label>
+    <p class="hint"><a href="{{ source_url }}/blob/main/docs/TELEGRAM{{ '.de' if lang == 'de' }}.md" target="_blank" rel="noreferrer">{{ t('notify.telegram.help') }}</a></p>
+    <div class="actions">
+      <button type="submit" name="action" value="test:telegram" class="ghost">{{ t('notify.save_test') }}</button>
+      {% if flags.telegram %}<label class="option"><input type="checkbox" name="clear" value="telegram"><span>{{ t('notify.clear') }}</span></label>{% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Pushover</h2>
+    <label class="option"><input type="checkbox" name="pushover_on" {% if cfg.pushover.enabled %}checked{% endif %}>
+      <span>{{ t('notify.channel.on') }}</span></label>
+    <label class="field"><span>{{ t('notify.pushover.token') }}</span>
+      <input type="password" name="pushover_token" autocomplete="new-password"
+             placeholder="{{ t('notify.secret.kept') if flags.pushover else '' }}"></label>
+    <label class="field"><span>{{ t('notify.pushover.user') }}</span>
+      <input type="password" name="pushover_user" autocomplete="new-password"
+             placeholder="{{ t('notify.secret.kept') if flags.pushover else '' }}"></label>
+    <label class="pick stack"><span>{{ t('notify.pushover.priority') }}</span>
+      <select name="pushover_priority">
+        {% for value in (-1, 0, 1) %}
+          <option value="{{ value }}" {% if cfg.pushover.priority == value %}selected{% endif %}>{{ t('notify.pushover.p' ~ value) }}</option>
+        {% endfor %}
+      </select></label>
+    <div class="actions">
+      <button type="submit" name="action" value="test:pushover" class="ghost">{{ t('notify.save_test') }}</button>
+      {% if flags.pushover %}<label class="option"><input type="checkbox" name="clear" value="pushover"><span>{{ t('notify.clear') }}</span></label>{% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Home Assistant</h2>
+    <label class="option"><input type="checkbox" name="ha_on" {% if cfg.ha.enabled %}checked{% endif %}>
+      <span>{{ t('notify.channel.on') }}</span></label>
+    <label class="field"><span>{{ t('notify.ha.url') }}</span>
+      <input type="text" name="ha_url" value="{{ cfg.ha.url }}" placeholder="http://homeassistant.local:8123"></label>
+    <label class="field"><span>{{ t('notify.ha.service') }}</span>
+      <input type="text" name="ha_service" value="{{ cfg.ha.service }}" placeholder="notify"></label>
+    <label class="field"><span>{{ t('notify.ha.token') }}</span>
+      <input type="password" name="ha_token" autocomplete="new-password"
+             placeholder="{{ t('notify.secret.kept') if flags.ha else '' }}"></label>
+    <label class="option"><input type="checkbox" name="ha_insecure" {% if cfg.ha.insecure %}checked{% endif %}>
+      <span>{{ t('notify.insecure') }}</span></label>
+    <div class="actions">
+      <button type="submit" name="action" value="test:ha" class="ghost">{{ t('notify.save_test') }}</button>
+      {% if flags.ha %}<label class="option"><input type="checkbox" name="clear" value="ha"><span>{{ t('notify.clear') }}</span></label>{% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Webhook</h2>
+    <label class="option"><input type="checkbox" name="webhook_on" {% if cfg.webhook.enabled %}checked{% endif %}>
+      <span>{{ t('notify.channel.on') }}</span></label>
+    <label class="field"><span>{{ t('notify.webhook.url') }}</span>
+      <input type="password" name="webhook_url" autocomplete="new-password"
+             placeholder="{{ (t('notify.secret.kept') ~ ' (' ~ flags.webhook_host ~ ')') if flags.webhook else 'https://…' }}"></label>
+    <label class="field"><span>{{ t('notify.webhook.auth') }}</span>
+      <input type="password" name="webhook_auth" autocomplete="new-password"
+             placeholder="{{ t('notify.secret.kept') if flags.webhook_auth else 'Bearer …' }}"></label>
+    <label class="pick stack"><span>{{ t('notify.webhook.format') }}</span>
+      <select name="webhook_format">
+        <option value="json" {% if cfg.webhook.format == 'json' %}selected{% endif %}>JSON</option>
+        <option value="text" {% if cfg.webhook.format == 'text' %}selected{% endif %}>{{ t('notify.webhook.text') }}</option>
+      </select></label>
+    <label class="option"><input type="checkbox" name="webhook_insecure" {% if cfg.webhook.insecure %}checked{% endif %}>
+      <span>{{ t('notify.insecure') }}</span></label>
+    <div class="actions">
+      <button type="submit" name="action" value="test:webhook" class="ghost">{{ t('notify.save_test') }}</button>
+      {% if flags.webhook %}<label class="option"><input type="checkbox" name="clear" value="webhook"><span>{{ t('notify.clear') }}</span></label>{% endif %}
+    </div>
+  </section>
+
+  </div>
+</form>
+
+{% endblock %}

@@ -129,6 +129,16 @@ CREATE TABLE IF NOT EXISTS pull_request (
     PRIMARY KEY (full_name, number)
 );
 
+-- What the notifications have already looked at: kind is 'issue' or 'pull'
+-- (one row per open item), or 'repo' (number 0) for a repository whose
+-- items have been taken in, so a newly followed one does not flood.
+CREATE TABLE IF NOT EXISTS notify_seen (
+    kind      TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    number    INTEGER NOT NULL,
+    PRIMARY KEY (kind, full_name, number)
+);
+
 CREATE TABLE IF NOT EXISTS ha_version (
     full_name TEXT NOT NULL,
     version   TEXT NOT NULL,
@@ -326,7 +336,8 @@ class Database:
             )
 
     _BY_NAME = ("snapshot", "daily", "referrer", "popular_path", "release_asset",
-                "issue", "pull_request", "ha_version", "release_asset_history")
+                "issue", "pull_request", "ha_version", "release_asset_history",
+                "notify_seen")
 
     def _rename(self, con, old: str, new: str) -> None:
         """Carry everything stored under the old name over to the new one.
@@ -720,6 +731,22 @@ class Database:
         with self.connect() as con:
             return con.execute(
                 "SELECT * FROM run ORDER BY started_at DESC LIMIT 1").fetchone()
+
+    def seen(self, kind: str) -> set[tuple[str, int]]:
+        with self.connect() as con:
+            return {(r["full_name"], r["number"]) for r in con.execute(
+                "SELECT full_name, number FROM notify_seen WHERE kind = ?", (kind,))}
+
+    def replace_seen(self, issues, pulls, repos) -> None:
+        """Make what is open right now the new 'already seen'."""
+        with self.connect() as con:
+            con.execute("DELETE FROM notify_seen")
+            con.executemany("INSERT OR IGNORE INTO notify_seen VALUES ('issue', ?, ?)",
+                            [(r["full_name"], r["number"]) for r in issues])
+            con.executemany("INSERT OR IGNORE INTO notify_seen VALUES ('pull', ?, ?)",
+                            [(r["full_name"], r["number"]) for r in pulls])
+            con.executemany("INSERT OR IGNORE INTO notify_seen VALUES ('repo', ?, 0)",
+                            [(name,) for name in repos])
 
     def last_run_of(self, kinds: tuple[str, ...]) -> str | None:
         """When the newest finished run of these kinds started."""

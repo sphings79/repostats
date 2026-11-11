@@ -22,6 +22,7 @@
   {% if request.url.path not in ('/login', '/setup') %}
   <nav id="main-nav">
     <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>{{ t('nav.overview') }}</a>
+    <a href="/notifications" {% if request.url.path == '/notifications' %}class="active"{% endif %}>{{ t('nav.notifications') }}</a>
     <a href="/settings" {% if request.url.path == '/settings' %}class="active"{% endif %}>{{ t('nav.settings') }}</a>
     {% if auth_enabled %}
       <a class="only-mobile{% if request.url.path == '/account' %} active{% endif %}" href="/account">{{ t('account.title') }}</a>
