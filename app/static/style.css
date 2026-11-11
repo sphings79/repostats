@@ -550,3 +550,16 @@ table.repos td .dash { color: var(--dim); }
 .field > span { color: var(--muted); font-size: 12.5px; }
 .field input { height: 40px; font-size: 14px; }
 .channels.paused .panel { opacity: .55; }
+
+/* Star on GitHub / Buy me a coffee: in the footer, or in the burger menu on phones */
+footer .foot-links { margin-left: auto; display: flex; gap: 6px 18px; flex-wrap: wrap; }
+footer .foot-links + .source { margin-left: 0; }
+footer .strong { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+footer .foot-links a { color: var(--muted); text-decoration: none; }
+footer .foot-links a:hover { color: var(--accent); }
+.top nav a.strong svg { flex: none; }
+@media (max-width: 720px) {
+  footer .foot-links { display: none; }
+  footer .foot-links + .source { margin-left: auto; }
+  .only-mobile.strong { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+}
