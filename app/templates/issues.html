@@ -7,8 +7,17 @@
     <a class="back" href="/">{{ t('repo.back') }}</a>
     <h1>{{ t('issues.title') }}</h1>
     <p class="sub">{{ t('issues.sub', n=total) }}</p>
+    {% if delta %}
+      <p class="hero-delta">
+        <span class="kpi-delta {{ delta.mood }}">{{ delta.text }}</span>
+        <span class="kpi-since">{{ delta.since }}</span>
+      </p>
+    {% endif %}
   </div>
+  {% include "topic_bar.html" %}
 </section>
+
+{% include "hidden_note.html" %}
 
 {% if not groups %}
   <section class="panel"><p class="empty">{{ t('issues.none') }}</p></section>

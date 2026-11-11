@@ -7,18 +7,29 @@
     <a class="back" href="/">{{ t('repo.back') }}</a>
     <h1>{{ t('pulls.title') }}</h1>
     <p class="sub">{{ t('pulls.sub', n=total, bots=bots) }}</p>
-  </div>
-  {% if bots %}
-  <div class="range">
-    {% set query = ('repo=' ~ (single | urlencode) ~ '&') if single else '' %}
-    {% if show_bots %}
-      <a href="?{{ query }}bots=0">{{ t('pulls.hide_bots') }}</a>
-    {% else %}
-      <a href="?{{ query }}bots=1">{{ t('pulls.show_bots') }}</a>
+    {% if delta %}
+      <p class="hero-delta">
+        <span class="kpi-delta {{ delta.mood }}">{{ delta.text }}</span>
+        <span class="kpi-since">{{ delta.since }}</span>
+      </p>
     {% endif %}
   </div>
-  {% endif %}
+  <div class="hero-tools">
+    {% include "topic_bar.html" %}
+    {% if bots %}
+    <div class="range">
+      {% set query = ('repo=' ~ (single | urlencode) ~ '&' if single else '') ~ ('topic=' ~ (topic | urlencode) ~ '&' if topic else '') ~ ('all=1&' if show_all else '') %}
+      {% if show_bots %}
+        <a href="?{{ query }}bots=0">{{ t('pulls.hide_bots') }}</a>
+      {% else %}
+        <a href="?{{ query }}bots=1">{{ t('pulls.show_bots') }}</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
 </section>
+
+{% include "hidden_note.html" %}
 
 {% if not groups %}
   <section class="panel"><p class="empty">{{ t('pulls.none') }}</p></section>

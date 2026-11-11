@@ -220,6 +220,21 @@ document.querySelectorAll(".pick select").forEach((select) => {
   list.setAttribute("role", "listbox");
   list.hidden = true;
 
+  // Long lists (topics) get a search field on top of the open list.
+  let find = null;
+  let none = null;
+  if (select.dataset.search !== undefined) {
+    find = document.createElement("input");
+    find.type = "search";
+    find.className = "combo-find";
+    find.autocomplete = "off";
+    find.placeholder = document.documentElement.lang === "de" ? "Suchen …" : "Search …";
+    none = document.createElement("li");
+    none.className = "combo-none";
+    none.textContent = document.documentElement.lang === "de" ? "Kein Treffer" : "No match";
+    none.hidden = true;
+  }
+
   const label = () => {
     button.textContent = select.options[select.selectedIndex]?.textContent ?? "";
     button.classList.toggle("set", select.selectedIndex > 0);
@@ -242,9 +257,24 @@ document.querySelectorAll(".pick select").forEach((select) => {
     });
     list.appendChild(item);
   });
+  if (find) list.prepend(find);
+  if (none) list.appendChild(none);
+
+  const items = () => [...list.querySelectorAll("li[role=option]")];
+  const shown = () => items().filter((item) => !item.hidden);
+
+  const narrow = () => {
+    const needle = find.value.trim().toLowerCase();
+    items().forEach((item, index) => {
+      // the first entry is the "any" choice and goes away while searching
+      item.hidden = needle !== "" && (index === 0 ||
+        !item.textContent.toLowerCase().includes(needle));
+    });
+    none.hidden = needle === "" || shown().length > 0;
+  };
 
   const mark = () => {
-    [...list.children].forEach((item, index) => {
+    items().forEach((item, index) => {
       item.classList.toggle("on", index === select.selectedIndex);
     });
   };
@@ -265,7 +295,44 @@ document.querySelectorAll(".pick select").forEach((select) => {
     list.hidden = false;
     button.setAttribute("aria-expanded", "true");
     wrap.classList.add("open");
+    if (find) {
+      find.value = "";
+      narrow();
+      find.focus();
+    }
   };
+
+  if (find) {
+    // clicks and keys inside the search field must not close the list
+    find.addEventListener("click", (event) => event.stopPropagation());
+    find.addEventListener("input", (event) => {
+      event.stopPropagation();
+      narrow();
+    });
+    find.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        shown()[0]?.click();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        shown()[0]?.focus();
+      }
+    });
+    list.addEventListener("keydown", (event) => {
+      const visible = shown();
+      const at = visible.indexOf(document.activeElement);
+      if (event.key === "ArrowDown" && at >= 0) {
+        event.preventDefault();
+        visible[Math.min(at + 1, visible.length - 1)].focus();
+      } else if (event.key === "ArrowUp" && at >= 0) {
+        event.preventDefault();
+        (at === 0 ? find : visible[at - 1]).focus();
+      } else if (event.key === "Enter" && at >= 0) {
+        event.preventDefault();
+        visible[at].click();
+      }
+    });
+  }
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -282,6 +349,54 @@ document.querySelectorAll(".pick select").forEach((select) => {
   select.parentNode.insertBefore(wrap, select);
   wrap.append(button, list, select);
   label();
+});
+
+// A dropdown that reloads the page with its value as a query parameter,
+// leaving the other parameters (repository, bots …) as they are.
+document.querySelectorAll("select[data-nav]").forEach((select) => {
+  select.addEventListener("input", () => {
+    const query = new URLSearchParams(window.location.search);
+    if (select.value) query.set(select.dataset.nav, select.value);
+    else query.delete(select.dataset.nav);
+    window.location.search = query.toString();
+  });
+});
+
+// A dropdown that adds what is picked to a list of removable chips; each chip
+// carries a hidden field, so the surrounding form submits the list.
+document.querySelectorAll("select[data-chips]").forEach((select) => {
+  const box = document.querySelector(select.dataset.chips);
+  if (!box) return;
+  const name = "hidden_topics";
+
+  const wire = (chip) => {
+    chip.querySelector("button")?.addEventListener("click", () => chip.remove());
+  };
+  box.querySelectorAll(".chip").forEach(wire);
+
+  select.addEventListener("input", () => {
+    const topic = select.value;
+    if (!topic) return;
+    const have = [...box.querySelectorAll("input")].some((input) => input.value === topic);
+    if (!have) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      const field = document.createElement("input");
+      field.type = "hidden";
+      field.name = name;
+      field.value = topic;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", box.dataset.remove || "Remove");
+      chip.append(field, topic, remove);
+      wire(chip);
+      box.appendChild(chip);
+    }
+    // back to the prompt, ready for the next one
+    select.selectedIndex = 0;
+    select.dispatchEvent(new Event("input"));
+  });
 });
 
 // Forms that ask before they act.

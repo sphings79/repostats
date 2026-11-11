@@ -1,0 +1,10 @@
+{# repositories left out because of a hidden topic, and the way to see them #}
+{% set keep = ('repo=' ~ (single | urlencode) ~ '&' if single else '')
+            ~ ('topic=' ~ (topic | urlencode) ~ '&' if topic else '')
+            ~ ('bots=0&' if show_bots is defined and not show_bots else '') %}
+{% if hidden_repos %}
+  <p class="warning soft">{{ t('list.hidden', n=hidden_repos) }}
+    <a href="?{{ keep }}all=1">{{ t('list.hidden.show') }}</a></p>
+{% elif show_all and has_hidden %}
+  <p class="warning soft"><a href="?{{ keep }}">{{ t('list.hidden.hide') }}</a></p>
+{% endif %}

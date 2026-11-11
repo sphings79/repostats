@@ -65,6 +65,21 @@
         <span class="hint">{{ t('settings.sticky.note') }}</span>
       </span>
     </label>
+    <div class="stack">
+      <span class="field-title">{{ t('settings.hidden') }}</span>
+      <span class="hint">{{ t('settings.hidden.note') }}</span>
+      <label class="pick">
+        <select data-search data-chips="#hidden-chips">
+          <option value="">{{ t('settings.hidden.add') }}</option>
+          {% for topic in topics %}<option value="{{ topic }}">{{ topic }}</option>{% endfor %}
+        </select>
+      </label>
+      <div class="chips" id="hidden-chips" data-remove="{{ t('settings.hidden.remove') }}">
+        {% for topic in hidden_topics %}
+          <span class="chip"><input type="hidden" name="hidden_topics" value="{{ topic }}">{{ topic }}<button type="button" aria-label="{{ t('settings.hidden.remove') }}">×</button></span>
+        {% endfor %}
+      </div>
+    </div>
     <div class="actions">
       <button type="submit">{{ t('settings.display.save') }}</button>
     </div>
@@ -120,7 +135,7 @@
       </label>
       <label class="pick">
         <span>{{ t('filter.topic') }}</span>
-        <select id="f-topic">
+        <select id="f-topic" data-search>
           <option value="">{{ t('filter.topic.any') }}</option>
           {% for topic in topics %}
             <option value="{{ topic }}">{{ topic }}</option>

@@ -1,0 +1,13 @@
+{# topic filter and the note about repositories hidden by their topics #}
+{% if choices or topic %}
+<label class="pick">
+  <span>{{ t('filter.topic') }}</span>
+  <select data-search data-nav="topic">
+    <option value="">{{ t('filter.topic.any') }}</option>
+    {% for choice in choices %}
+      <option value="{{ choice }}" {% if choice == topic %}selected{% endif %}>{{ choice }}</option>
+    {% endfor %}
+    {% if topic and topic not in choices %}<option value="{{ topic }}" selected>{{ topic }}</option>{% endif %}
+  </select>
+</label>
+{% endif %}
