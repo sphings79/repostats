@@ -10,14 +10,23 @@
 </head>
 <body>
 <header class="top">
+  {% if request.url.path not in ('/login', '/setup') %}
+  <button type="button" class="burger" aria-label="{{ t('nav.menu') }}" aria-expanded="false" aria-controls="main-nav">
+    <span></span><span></span><span></span>
+  </button>
+  {% endif %}
   <a class="brand" href="/">
     <img class="mark" src="/static/logo.svg?v={{ asset_version }}" alt="" width="22" height="22">
     <span>Repo&nbsp;Stats</span>
   </a>
   {% if request.url.path not in ('/login', '/setup') %}
-  <nav>
+  <nav id="main-nav">
     <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>{{ t('nav.overview') }}</a>
     <a href="/settings" {% if request.url.path == '/settings' %}class="active"{% endif %}>{{ t('nav.settings') }}</a>
+    {% if auth_enabled %}
+      <a class="only-mobile{% if request.url.path == '/account' %} active{% endif %}" href="/account">{{ t('account.title') }}</a>
+      <a class="only-mobile" href="/logout">{{ t('login.logout') }}</a>
+    {% endif %}
   </nav>
   {% endif %}
   <div class="lang">
@@ -25,9 +34,9 @@
       <a href="/lang/{{ code }}" {% if code == lang %}class="on"{% endif %} title="{{ label }}">{{ code | upper }}</a>
     {% endfor %}
     {% if auth_enabled and request.url.path not in ('/login', '/setup') %}
-      <a href="/account" class="logout {% if request.url.path == '/account' %}on{% endif %}"
+      <a href="/account" class="logout hide-mobile {% if request.url.path == '/account' %}on{% endif %}"
          title="{{ t('account.title') }}">{{ t('account.title') }}</a>
-      <a href="/logout" class="logout" title="{{ t('login.logout') }}">{{ t('login.logout') }}</a>
+      <a href="/logout" class="logout hide-mobile" title="{{ t('login.logout') }}">{{ t('login.logout') }}</a>
     {% endif %}
   </div>
 </header>

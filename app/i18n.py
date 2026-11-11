@@ -12,6 +12,7 @@ TEXTS: dict[str, dict[str, str]] = {
     "de": {
         "nav.overview": "Übersicht",
         "nav.settings": "Verwaltung",
+        "nav.menu": "Menü",
 
         "overview.title": "Alle Repositories auf einen Blick",
         "overview.sub": "{n} beobachtet · Zahlen werden stündlich geholt, der Verlauf täglich gesichert",
@@ -272,6 +273,7 @@ TEXTS: dict[str, dict[str, str]] = {
     "en": {
         "nav.overview": "Overview",
         "nav.settings": "Settings",
+        "nav.menu": "Menu",
 
         "overview.title": "Every repository at a glance",
         "overview.sub": "{n} followed · counters refresh hourly, the history is kept daily",
