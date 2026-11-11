@@ -188,6 +188,19 @@
         </tbody>
       </table>
     </div>
+
+    <div class="pager">
+      <label class="pick">
+        <span>{{ t('pager.per_page') }}</span>
+        <select id="page-size">
+          {% for size in (20, 50, 100, 200) %}<option value="{{ size }}" {% if size == 50 %}selected{% endif %}>{{ size }}</option>{% endfor %}
+          <option value="0">{{ t('pager.all') }}</option>
+        </select>
+      </label>
+      <span class="hint" id="page-info" data-template="{{ t('pager.info', a='{a}', b='{b}', n='{n}', page='{page}', pages='{pages}') }}"></span>
+      <button type="button" class="ghost" id="page-prev">‹ {{ t('pager.prev') }}</button>
+      <button type="button" class="ghost" id="page-next">{{ t('pager.next') }} ›</button>
+    </div>
     <div class="save-bar">
       <button type="submit">{{ t('settings.save') }}</button>
       <span class="hint" id="count-bottom" data-template="{n} {{ t('settings.selected') }}"></span>

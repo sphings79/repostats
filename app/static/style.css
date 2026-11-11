@@ -563,3 +563,8 @@ footer .foot-links a:hover { color: var(--accent); }
   footer .foot-links + .source { margin-left: auto; }
   .only-mobile.strong { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 }
+
+/* page size and page buttons under the repository table */
+.pager { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0 4px; }
+.pager .hint { margin-right: auto; }
+.pager button:disabled { opacity: .4; cursor: default; }
