@@ -286,3 +286,24 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
     if (!window.confirm(form.dataset.confirm)) event.preventDefault();
   });
 });
+
+// Burger menu on small screens.
+(() => {
+  const burger = document.querySelector(".burger");
+  const nav = document.getElementById("main-nav");
+  if (!burger || !nav) return;
+  const set = (open) => {
+    nav.classList.toggle("open", open);
+    burger.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  burger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    set(!nav.classList.contains("open"));
+  });
+  document.addEventListener("click", (event) => {
+    if (!nav.contains(event.target)) set(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") set(false);
+  });
+})();
