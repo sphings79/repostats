@@ -75,10 +75,11 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeHints();
 });
 
-// Sortable overview table.
-const table = document.getElementById("repo-table");
-if (table) {
-  table.querySelectorAll("th[data-sort]").forEach((th, index) => {
+// Sortable tables. A cell may carry the exact value in data-v, because its
+// text can hold more than the number (a small change next to it).
+document.querySelectorAll("table.sortable").forEach((table) => {
+  table.querySelectorAll("th[data-sort]").forEach((th) => {
+    const index = th.cellIndex;
     th.addEventListener("click", () => {
       const body = table.tBodies[0];
       const rows = [...body.rows];
@@ -93,8 +94,11 @@ if (table) {
         const left = a.cells[index].textContent.trim();
         const right = b.cells[index].textContent.trim();
         if (numeric) {
-          const l = parseInt(left.replace(/\./g, ""), 10) || 0;
-          const r = parseInt(right.replace(/\./g, ""), 10) || 0;
+          const value = (cell) => cell.dataset.v !== undefined
+            ? parseFloat(cell.dataset.v) || 0
+            : parseInt(cell.textContent.trim().replace(/\./g, ""), 10) || 0;
+          const l = value(a.cells[index]);
+          const r = value(b.cells[index]);
           return asc ? l - r : r - l;
         }
         return asc ? left.localeCompare(right, "de") : right.localeCompare(left, "de");
@@ -102,7 +106,7 @@ if (table) {
       rows.forEach((row) => body.appendChild(row));
     });
   });
-}
+});
 
 // Settings: filtering and selecting are two different things, so they are
 // two separate rows of controls. The selection actions act on what the
